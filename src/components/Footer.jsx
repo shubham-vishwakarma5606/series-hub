@@ -1,3 +1,5 @@
+import { TMDB_ENABLED } from '../utils/tmdb.js'
+
 export default function Footer () {
   const cols = [
     ['FAQ', 'Investor Relations', 'Privacy', 'Speed Test'],
@@ -27,6 +29,9 @@ export default function Footer () {
       </div>
       <button className="ft-code">Service Code</button>
       <p className="ft-copy">© 1997–2026 Series Hub, Inc. &nbsp;·&nbsp; A streaming experience in blue, black &amp; red.</p>
+      {TMDB_ENABLED && (
+        <p className="tmdb-attr">This product uses the TMDB API but is not endorsed or certified by TMDB. Film/TV metadata &amp; artwork © TMDB poster contributors; trailers © their respective owners (YouTube embeds).</p>
+      )}
     </footer>
   )
 }

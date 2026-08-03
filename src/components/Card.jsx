@@ -24,6 +24,11 @@ export default function Card ({ show, variant = 'land', onOpen, onPlay, inList, 
         {newBadge && <span className="art-badge">New Season</span>}
         {show.comingSoon && <span className="art-badge soon">Coming {show.comingSoon}</span>}
         <span className="art-sheen" aria-hidden="true" />
+        {typeof show._pct === 'number' && (
+          <span className="card-progress" aria-hidden="true">
+            <i style={{ width: `${Math.min(100, Math.round(show._pct * 100))}%` }} />
+          </span>
+        )}
       </div>
 
       <div className="card-info">
@@ -44,7 +49,7 @@ export default function Card ({ show, variant = 'land', onOpen, onPlay, inList, 
           ) : (
             <>
               <button className="cbd solid" aria-label={`Play ${show.title}`}
-                onClick={(e) => { e.stopPropagation(); onPlay(show) }}>
+                onClick={(e) => { e.stopPropagation(); onPlay(show, show._ep || 0, show._t || 0) }}>
                 <svg viewBox="0 0 24 24"><path d="M6 4l14 8-14 8z"/></svg>
               </button>
               <button className={`cbd${inList ? ' ok' : ''}`} aria-label={inList ? 'Remove from My List' : 'Add to My List'}

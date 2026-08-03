@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { byId } from '../data/catalog.js'
 import Logo from './Logo.jsx'
 
@@ -12,10 +12,11 @@ const fmt = (t) => {
 const isHls = (u) => /\.m3u8($|\?)/i.test(u)
 
 // Player with two modes:
-//  • REAL — plays an actual MP4/WebM/HLS stream you are licensed to host
-//           (configure videoUrl / episodeVideos in src/data/catalog.js)
-//  • SIMULATED — cinematic animated showcase when no stream is configured
-export default function Player ({ showId, epIdx = 0, onClose, onToast }) {
+//  • REAL — actual MP4/WebM/HLS playback (videoUrl / episodeVideos in catalog.js)
+//           with hls.js track menus (audio / subtitles / quality) + PiP
+//  • SIMULATED — marked cinematic preview when no stream is configured
+// Both modes feed "Continue Watching" via onProgress and support resume (startAt).
+export default function Player ({ showId, epIdx = 0, startAt = 0, onClose, onToast, onProgress }) {
   const show = byId[showId]
   const isSeries = show.type === 'series'
   const [epN, setEpN] = useState(Math.min(epIdx, (show.episodes || []).length - 1))
@@ -27,32 +28,54 @@ export default function Player ({ showId, epIdx = 0, onClose, onToast }) {
 
   const [t, setT] = useState(0)
   const [dur, setDur] = useState(fallbackDur)
-  const [bufPct, setBufPct] = useState(14)
+  const [bufPct, setBufPct] = useState(real ? 0 : 14)
   const [playing, setPlaying] = useState(true)
   const [muted, setMuted] = useState(false)
   const [ctl, setCtl] = useState(true)
   const [drawer, setDrawer] = useState(false)
   const [endedReal, setEndedReal] = useState(false)
+
+  const [subTr, setSubTr] = useState([]); const [selSub, setSelSub] = useState(-1)
+  const [audTr, setAudTr] = useState([]); const [selAud, setSelAud] = useState(0)
+  const [levels, setLevels] = useState([]); const [selQ, setSelQ] = useState(-1)
+  const [menu, setMenu] = useState(null)
+
   const idle = useRef(null)
   const barRef = useRef(null)
   const videoRef = useRef(null)
+  const hlsRef = useRef(null)
+  const lastSavedRef = useRef(-1)
+  const onProgressRef = useRef(onProgress)
+  const onToastRef = useRef(onToast)
+  onProgressRef.current = onProgress
+  onToastRef.current = onToast
 
   const duration = real ? dur : fallbackDur
   const ended = real ? endedReal : t >= duration
+  const epNo = isSeries ? epN : 0
+  const latestRef = useRef(null)
+  latestRef.current = { showId, ep: epNo, t, dur: duration }
+  const pipOk = typeof document !== 'undefined' && !!document.pictureInPictureEnabled
 
-  const poke = useCallback(() => {
+  const poke = () => {
     setCtl(true)
     clearTimeout(idle.current)
     idle.current = setTimeout(() => setCtl(false), 2800)
-  }, [])
+  }
 
   // page lock + control auto-hide
   useEffect(() => {
     poke()
     const prev = document.body.style.overflow
     document.body.style.overflow = 'hidden'
-    return () => { document.body.style.overflow = prev; clearTimeout(idle.current) }
-  }, [poke])
+    return () => {
+      document.body.style.overflow = prev
+      clearTimeout(idle.current)
+      const s = latestRef.current
+      if (s && onProgressRef.current) onProgressRef.current({ ...s, at: Date.now() })
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   // keyboard shortcuts
   useEffect(() => {
@@ -66,62 +89,85 @@ export default function Player ({ showId, epIdx = 0, onClose, onToast }) {
     return () => window.removeEventListener('keydown', key)
   })
 
-  // ── REAL MODE: attach the stream (native or hls.js for .m3u8) ────────────
+  const report = (sec, d) => {
+    const s = Math.floor(sec)
+    if (s - lastSavedRef.current >= 5) {
+      lastSavedRef.current = s
+      onProgressRef.current?.({ showId, ep: epNo, t: sec, dur: d, at: Date.now() })
+    }
+  }
+
+  // ── REAL MODE: attach stream (native or hls.js for .m3u8) ────────────────
   useEffect(() => {
-    if (!real) return
+    if (!real) return undefined
     const v = videoRef.current
-    if (!v) return
+    if (!v) return undefined
     let hls = null
     let cancelled = false
 
-    setT(0); setEndedReal(false); setBufPct(0); setPlaying(true)
+    setT(0); setEndedReal(false); setBufPct(0); setPlaying(true); setMenu(null)
+    setSubTr([]); setSelSub(-1); setAudTr([]); setSelAud(0); setLevels([]); setSelQ(-1)
+    lastSavedRef.current = -1
 
     const start = () => { v.play().catch(() => setPlaying(false)) }
 
     if (isHls(src) && !v.canPlayType('application/vnd.apple.mpegurl')) {
       import('hls.js').then(({ default: Hls }) => {
         if (cancelled) return
-        if (Hls.isSupported()) {
-          hls = new Hls({ enableWorker: true })
-          hls.loadSource(src)
-          hls.attachMedia(v)
-          hls.on(Hls.Events.MANIFEST_PARSED, start)
-          hls.on(Hls.Events.ERROR, (_e, data) => {
-            if (data?.fatal) onToast('Stream error — check the source URL / CORS headers')
-          })
-        } else {
-          onToast('This browser cannot play HLS streams')
-        }
-      }).catch(() => onToast('Could not load the stream engine'))
+        if (!Hls.isSupported()) { onToastRef.current?.('This browser cannot play HLS streams'); return }
+        hls = new Hls({ enableWorker: true })
+        hlsRef.current = hls
+        hls.loadSource(src)
+        hls.attachMedia(v)
+        hls.on(Hls.Events.MANIFEST_PARSED, () => {
+          if (cancelled) return
+          setAudTr(hls.audioTracks || [])
+          setSubTr(hls.subtitleTracks || [])
+          setLevels(hls.levels || [])
+          start()
+        })
+        hls.on(Hls.Events.ERROR, (_e, data) => {
+          if (data?.fatal) onToastRef.current?.('Stream error — check the source URL / CORS headers')
+        })
+      }).catch(() => onToastRef.current?.('Could not load the stream engine'))
     } else {
       v.src = src
       v.load()
       start()
     }
-    return () => { cancelled = true; if (hls) hls.destroy() }
+    return () => { cancelled = true; if (hls) hls.destroy(); hlsRef.current = null }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [src, real])
 
-  // ── SIMULATED MODE: fake playback clock ───────────────────────────────────
+  // ── SIMULATED MODE: fake clock ────────────────────────────────────────────
   useEffect(() => {
-    if (real) return
-    if (!playing || ended) return
+    if (real || !playing || ended) return undefined
     const id = setInterval(() => {
-      setT((v) => Math.min(duration, v + 1))
+      setT((v) => {
+        const nv = Math.min(duration, v + 1)
+        report(nv, duration)
+        return nv
+      })
       setBufPct((b) => Math.min(100, b + 0.5))
     }, 1000)
     return () => clearInterval(id)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [real, playing, ended, duration])
 
   useEffect(() => { if (ended) { setPlaying(false); setCtl(true) } }, [ended])
 
-  // ── control handlers (mode-aware) ─────────────────────────────────────────
+  // sim mode honors startAt
+  useEffect(() => { if (!real && startAt > 10 && startAt < duration - 10) setT(startAt) },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [showId, epN])
+
+  // ── controls ──────────────────────────────────────────────────────────────
   const togglePlay = () => {
     poke()
     if (real) {
       const v = videoRef.current
       if (!v) return
-      if (ended) { v.currentTime = 0 }
+      if (ended) v.currentTime = 0
       if (v.paused) v.play().catch(() => {})
       else v.pause()
     } else {
@@ -133,7 +179,7 @@ export default function Player ({ showId, epIdx = 0, onClose, onToast }) {
   const seekTo = (sec) => {
     const clamped = Math.min(Math.max(0, sec), duration || 0)
     if (real) { const v = videoRef.current; if (v) v.currentTime = clamped }
-    else setT(clamped)
+    setT(clamped)
     poke()
   }
   const seekBy = (d) => seekTo((real ? videoRef.current?.currentTime || 0 : t) + d)
@@ -141,9 +187,7 @@ export default function Player ({ showId, epIdx = 0, onClose, onToast }) {
   const seekClick = (e) => {
     const r = barRef.current.getBoundingClientRect()
     const pct = Math.min(1, Math.max(0, (e.clientX - r.left) / r.width))
-    if (real) { const v = videoRef.current; if (v && duration) v.currentTime = pct * duration }
-    if (!real) setT(Math.floor(pct * duration))
-    poke()
+    seekTo(pct * duration)
   }
 
   const pickEp = (ix) => {
@@ -157,10 +201,36 @@ export default function Player ({ showId, epIdx = 0, onClose, onToast }) {
     poke()
   }
 
-  // ── video element event hooks (real mode) ────────────────────────────────
+  const togglePip = async () => {
+    try {
+      if (document.pictureInPictureElement) await document.exitPictureInPicture()
+      else await videoRef.current?.requestPictureInPicture()
+    } catch { onToast('Picture-in-Picture is not available for this stream') }
+  }
+
+  const pickTrack = (kind, i) => {
+    const hls = hlsRef.current
+    if (kind === 'subs') {
+      if (hls) { hls.subtitleTrack = i; hls.subtitleDisplay = i >= 0 }
+      setSelSub(i)
+    } else if (kind === 'audio') {
+      if (hls) hls.audioTrack = i
+      setSelAud(i)
+    } else {
+      if (hls) hls.currentLevel = i
+      setSelQ(i)
+    }
+    setMenu(null)
+  }
+
+  // ── video element events (real mode) ─────────────────────────────────────
   const onVid = {
-    onTimeUpdate: (e) => setT(e.currentTarget.currentTime),
-    onLoadedMetadata: (e) => setDur(e.currentTarget.duration || fallbackDur),
+    onTimeUpdate: (e) => { setT(e.currentTarget.currentTime); report(e.currentTarget.currentTime, e.currentTarget.duration) },
+    onLoadedMetadata: (e) => {
+      const d = e.currentTarget.duration || fallbackDur
+      setDur(d)
+      if (startAt > 10 && startAt < d - 10) e.currentTarget.currentTime = startAt
+    },
     onPlay: () => { setPlaying(true); setEndedReal(false) },
     onPause: () => setPlaying(false),
     onEnded: () => setEndedReal(true),
@@ -170,11 +240,10 @@ export default function Player ({ showId, epIdx = 0, onClose, onToast }) {
         if (v.buffered.length && v.duration) setBufPct((v.buffered.end(v.buffered.length - 1) / v.duration) * 100)
       } catch { /* noop */ }
     },
-    onError: () => onToast('Could not load this video — check the URL and licensing host')
+    onError: () => onToastRef.current?.('Could not load this video — check the URL and licensing host')
   }
 
   const label = isSeries ? `S1:E${ep.n} “${ep.title}”` : show.title
-  const shownT = real ? t : t
 
   return (
     <div className={`player${ctl ? ' showctl' : ''}`} onMouseMove={poke} onTouchStart={poke}>
@@ -234,16 +303,48 @@ export default function Player ({ showId, epIdx = 0, onClose, onToast }) {
         <span className="p-flag">{real ? 'HD · LIVE SOURCE' : '4K ULTRA HD · DOLBY VISION'}</span>
       </div>
 
+      {/* track / quality menus (real HLS only) */}
+      {menu === 'subs' && (
+        <div className="px-menu" role="menu">
+          <h5>Subtitles</h5>
+          {[{ name: 'Off', lang: '', i: -1 }, ...subTr.map((s, i) => ({ name: s.name || s.lang || `Track ${i + 1}`, lang: s.lang, i }))].map((o) => (
+            <button key={o.i + o.name} className={selSub === o.i ? 'on' : ''} onClick={() => pickTrack('subs', o.i)}>
+              {o.name}{selSub === o.i && <span>✓</span>}
+            </button>
+          ))}
+        </div>
+      )}
+      {menu === 'audio' && (
+        <div className="px-menu" role="menu">
+          <h5>Audio</h5>
+          {audTr.map((a, i) => (
+            <button key={i} className={selAud === i ? 'on' : ''} onClick={() => pickTrack('audio', i)}>
+              {a.name || a.lang || `Track ${i + 1}`}{selAud === i && <span>✓</span>}
+            </button>
+          ))}
+        </div>
+      )}
+      {menu === 'quality' && (
+        <div className="px-menu" role="menu">
+          <h5>Quality</h5>
+          {[{ name: 'Auto', height: 0, i: -1 }, ...levels.map((l, i) => ({ name: `${l.height}p`, height: l.height, i }))].map((o) => (
+            <button key={o.i} className={selQ === o.i ? 'on' : ''} onClick={() => pickTrack('quality', o.i)}>
+              {o.name}{selQ === o.i && <span>✓</span>}
+            </button>
+          ))}
+        </div>
+      )}
+
       {/* bottom chrome */}
       <div className="p-bottom">
         <div className="p-seek" ref={barRef} onClick={seekClick} role="slider" aria-label="Seek"
-          aria-valuenow={duration ? Math.round((shownT / duration) * 100) : 0} aria-valuemin={0} aria-valuemax={100}>
-          <span className="p-buf" style={{ width: `${Math.min(100, duration ? (shownT / duration) * 100 : 0) + (duration ? Math.min(14, Math.max(0, bufPct - (shownT / duration) * 100)) : 0)}%` }} />
-          <span className="p-fill" style={{ width: `${duration ? (shownT / duration) * 100 : 0}%` }}>
+          aria-valuenow={duration ? Math.round((t / duration) * 100) : 0} aria-valuemin={0} aria-valuemax={100}>
+          <span className="p-buf" style={{ width: `${Math.min(100, duration ? (t / duration) * 100 : 0) + (duration ? Math.min(14, Math.max(0, bufPct - (t / duration) * 100)) : 0)}%` }} />
+          <span className="p-fill" style={{ width: `${duration ? (t / duration) * 100 : 0}%` }}>
             <i className="p-knob" />
           </span>
         </div>
-        <span className="p-time">-{fmt(Math.max(0, duration - shownT))}</span>
+        <span className="p-time">-{fmt(Math.max(0, duration - t))}</span>
 
         <div className="p-ctlrow">
           <div className="p-ctl-l">
@@ -275,12 +376,43 @@ export default function Player ({ showId, epIdx = 0, onClose, onToast }) {
                 <svg viewBox="0 0 24 24"><path fill="currentColor" d="M4 5h16v2H4zM4 11h16v2H4zM4 17h16v2H4z"/></svg>
               </button>
             )}
-            <button onClick={() => onToast('Subtitles: English (CC), हिन्दी, Español')} aria-label="Audio and subtitles">
-              <svg viewBox="0 0 24 24"><path fill="currentColor" d="M20 4H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2zM6 16H4.5v-1.5H6V16zm0-3.5H4.5V11H6v1.5zm3.5 3.5H8v-1.5h1.5V16zm0-3.5H8V11h1.5v1.5zM19 16h-8v-1.5h8V16zm0-3.5h-8V11h8v1.5z"/></svg>
-            </button>
-            <button onClick={() => onToast(real ? 'Quality: source default' : 'Already at the best quality: 4K HDR')} aria-label="Settings">
-              <svg viewBox="0 0 24 24"><path fill="currentColor" d="M19.4 13a7.5 7.5 0 0 0 .1-1 7.5 7.5 0 0 0-.1-1l2.1-1.6a.5.5 0 0 0 .1-.7l-2-3.4a.5.5 0 0 0-.7-.2l-2.5 1a7.4 7.4 0 0 0-1.7-1L14.5 2.7a.5.5 0 0 0-.5-.4h-4a.5.5 0 0 0-.5.4l-.3 2.7a7.4 7.4 0 0 0-1.7 1l-2.5-1a.5.5 0 0 0-.7.2l-2 3.4a.5.5 0 0 0 .1.7L4.5 11a7.5 7.5 0 0 0-.1 1 7.5 7.5 0 0 0 .1 1l-2.1 1.6a.5.5 0 0 0-.1.7l2 3.4c.1.3.4.4.7.3l2.5-1a7.4 7.4 0 0 0 1.7 1l.3 2.7c0 .2.2.4.5.4h4c.3 0 .5-.2.5-.4l.3-2.7a7.4 7.4 0 0 0 1.7-1l2.5 1c.3.1.6 0 .7-.2l2-3.4a.5.5 0 0 0-.1-.7L19.4 13zM12 15.5a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7z"/></svg>
-            </button>
+
+            {real && subTr.length > 0 && (
+              <button className={selSub >= 0 ? 'sel' : ''} aria-label="Subtitles"
+                onClick={() => setMenu(menu === 'subs' ? null : 'subs')}>
+                <svg viewBox="0 0 24 24"><path fill="currentColor" d="M20 4H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2zM6 16H4.5v-1.5H6V16zm0-3.5H4.5V11H6v1.5zm3.5 3.5H8v-1.5h1.5V16zm0-3.5H8V11h1.5v1.5zM19 16h-8v-1.5h8V16zm0-3.5h-8V11h8v1.5z"/></svg>
+              </button>
+            )}
+            {!real && (
+              <button onClick={() => onToast('Subtitles: English (CC), हिन्दी, Español')} aria-label="Audio and subtitles">
+                <svg viewBox="0 0 24 24"><path fill="currentColor" d="M20 4H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2zM6 16H4.5v-1.5H6V16zm0-3.5H4.5V11H6v1.5zm3.5 3.5H8v-1.5h1.5V16zm0-3.5H8V11h1.5v1.5zM19 16h-8v-1.5h8V16zm0-3.5h-8V11h8v1.5z"/></svg>
+              </button>
+            )}
+
+            {real && audTr.length > 1 && (
+              <button className={selAud > 0 ? 'sel' : ''} aria-label="Audio track"
+                onClick={() => setMenu(menu === 'audio' ? null : 'audio')}>
+                <svg viewBox="0 0 24 24"><path fill="currentColor" d="M12 3a9 9 0 0 0-9 9v7h4v-6H5a7 7 0 0 1 14 0h-2v6h4v-7a9 9 0 0 0-9-9z"/></svg>
+              </button>
+            )}
+
+            {real && levels.length > 1 && (
+              <button className={selQ >= 0 ? 'sel' : ''} aria-label="Quality"
+                onClick={() => setMenu(menu === 'quality' ? null : 'quality')}>
+                <svg viewBox="0 0 24 24"><path fill="currentColor" d="M19.4 13a7.5 7.5 0 0 0 .1-1 7.5 7.5 0 0 0-.1-1l2.1-1.6a.5.5 0 0 0 .1-.7l-2-3.4a.5.5 0 0 0-.7-.2l-2.5 1a7.4 7.4 0 0 0-1.7-1L14.5 2.7a.5.5 0 0 0-.5-.4h-4a.5.5 0 0 0-.5.4l-.3 2.7a7.4 7.4 0 0 0-1.7 1l-2.5-1a.5.5 0 0 0-.7.2l-2 3.4a.5.5 0 0 0 .1.7L4.5 11a7.5 7.5 0 0 0-.1 1 7.5 7.5 0 0 0 .1 1l-2.1 1.6a.5.5 0 0 0-.1.7l2 3.4c.1.3.4.4.7.3l2.5-1a7.4 7.4 0 0 0 1.7 1l.3 2.7c0 .2.2.4.5.4h4c.3 0 .5-.2.5-.4l.3-2.7a7.4 7.4 0 0 0 1.7-1l2.5 1c.3.1.6 0 .7-.2l2-3.4a.5.5 0 0 0-.1-.7L19.4 13zM12 15.5a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7z"/></svg>
+              </button>
+            )}
+            {!real && (
+              <button onClick={() => onToast('Already at the best quality: 4K HDR')} aria-label="Settings">
+                <svg viewBox="0 0 24 24"><path fill="currentColor" d="M19.4 13a7.5 7.5 0 0 0 .1-1 7.5 7.5 0 0 0-.1-1l2.1-1.6a.5.5 0 0 0 .1-.7l-2-3.4a.5.5 0 0 0-.7-.2l-2.5 1a7.4 7.4 0 0 0-1.7-1L14.5 2.7a.5.5 0 0 0-.5-.4h-4a.5.5 0 0 0-.5.4l-.3 2.7a7.4 7.4 0 0 0-1.7 1l-2.5-1a.5.5 0 0 0-.7.2l-2 3.4a.5.5 0 0 0 .1.7L4.5 11a7.5 7.5 0 0 0-.1 1 7.5 7.5 0 0 0 .1 1l-2.1 1.6a.5.5 0 0 0-.1.7l2 3.4c.1.3.4.4.7.3l2.5-1a7.4 7.4 0 0 0 1.7 1l.3 2.7c0 .2.2.4.5.4h4c.3 0 .5-.2.5-.4l.3-2.7a7.4 7.4 0 0 0 1.7-1l2.5 1c.3.1.6 0 .7-.2l2-3.4a.5.5 0 0 0-.1-.7L19.4 13zM12 15.5a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7z"/></svg>
+              </button>
+            )}
+
+            {real && pipOk && (
+              <button onClick={togglePip} aria-label="Picture in Picture">
+                <svg viewBox="0 0 24 24"><path fill="currentColor" d="M19 7h-8v6h8V7zm2-4H3a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h18a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2zm0 16H3V5h18v14z"/></svg>
+              </button>
+            )}
           </div>
         </div>
       </div>

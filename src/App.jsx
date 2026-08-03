@@ -10,7 +10,9 @@ import Player from './components/Player.jsx'
 import SearchPage from './components/SearchPage.jsx'
 import Footer from './components/Footer.jsx'
 import Logo from './components/Logo.jsx'
-import { ROWS, FEATURED, byId } from './data/catalog.js'
+import TmdbShelves from './components/TmdbShelf.jsx'
+import TmdbModal from './components/TmdbModal.jsx'
+import { ROWS, FEATURED, byId, moreLikeThis } from './data/catalog.js'
 
 const read = (k, fb) => {
   try { const v = JSON.parse(localStorage.getItem(k)); return v ?? fb } catch { return fb }
@@ -25,7 +27,9 @@ export default function App () {
   const [searchOpen, setSearchOpen] = useState(false)
   const [query, setQuery] = useState('')
   const [modalId, setModalId] = useState(null)
-  const [player, setPlayer] = useState(null) // { showId, epIdx }
+  const [tmdbSel, setTmdbSel] = useState(null) // { type, id, trailer }
+  const [player, setPlayer] = useState(null) // { showId, epIdx, startAt }
+  const [progress, setProgress] = useState(() => read('sh.progress', {}))
   const [toast, setToast] = useState(null)
   const toastTimer = useRef(null)
 
@@ -63,7 +67,30 @@ export default function App () {
   }, [say])
 
   const openModal = useCallback((show) => setModalId(show.id), [])
-  const play = useCallback((show, epIdx = 0) => setPlayer({ showId: show.id, epIdx }), [])
+  const play = useCallback((show, epIdx = 0, startAt = 0) => setPlayer({ showId: show.id, epIdx, startAt }), [])
+  const openTmdb = useCallback((item, trailer = false) => setTmdbSel({ type: item.type, id: item.id, trailer }), [])
+
+  // "Continue Watching" — persisted playback progress
+  const saveProgress = useCallback((rec) => {
+    const pct = rec.dur ? rec.t / rec.dur : 0
+    const key = `${rec.showId}:${rec.ep}`
+    setProgress((prev) => {
+      if (rec.t <= 25 && !prev[key]) return prev // don't create noise
+      const next = { ...prev }
+      if (pct >= 0.97) delete next[key] // finished → drop from Continue Watching
+      else if (rec.t > 25) next[key] = rec
+      try { localStorage.setItem('sh.progress', JSON.stringify(next)) } catch {}
+      return next
+    })
+  }, [])
+
+  const continueItems = Object.values(progress)
+    .filter((r) => r.dur && r.t > 25 && r.t / r.dur < 0.97 && byId[r.showId])
+    .sort((a, b) => b.at - a.at)
+    .slice(0, 12)
+    .map((r) => ({ ...byId[r.showId], _pct: r.t / r.dur, _ep: r.ep, _t: r.t }))
+
+  const lastWatched = Object.values(progress).sort((a, b) => b.at - a.at).map((r) => byId[r.showId]).find(Boolean)
 
   useEffect(() => { window.scrollTo({ top: 0 }) }, [tab, searchOpen])
 
@@ -88,7 +115,17 @@ export default function App () {
     reminded: (s) => reminded.has(s.id)
   }
 
-  const rows = ROWS[tab] || ROWS.home
+  const baseRows = ROWS[tab] || ROWS.home
+  const dynRows = []
+  if (tab === 'home') {
+    if (continueItems.length) {
+      dynRows.push({ key: 'continue', title: `Continue Watching for ${profile?.name || 'You'}`, variant: 'land', items: continueItems })
+    }
+    if (lastWatched) {
+      dynRows.push({ key: 'byw', title: `Because you watched “${lastWatched.title}”`, variant: 'land', items: moreLikeThis(lastWatched, 12) })
+    }
+  }
+  const rows = [...dynRows, ...baseRows]
 
   return (
     <>
@@ -133,13 +170,14 @@ export default function App () {
               <div className="rows">
                 {rows.map((r) => (
                   <Row
-                    key={r.key + (myList.size ? '' : '')}
+                    key={r.key}
                     title={r.title}
                     items={r.items}
                     variant={r.variant}
                     {...handlers}
                   />
                 ))}
+                <TmdbShelves tab={tab} onOpen={openTmdb} />
               </div>
             </main>
           )}
@@ -164,8 +202,18 @@ export default function App () {
         <Player
           showId={player.showId}
           epIdx={player.epIdx}
+          startAt={player.startAt}
           onClose={() => setPlayer(null)}
           onToast={say}
+          onProgress={saveProgress}
+        />
+      )}
+
+      {tmdbSel && (
+        <TmdbModal
+          sel={tmdbSel}
+          onClose={() => setTmdbSel(null)}
+          onPick={(s) => setTmdbSel(s)}
         />
       )}
 

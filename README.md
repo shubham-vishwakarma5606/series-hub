@@ -40,6 +40,19 @@ A fully client-side, Netflix-style OTT streaming experience — rebuilt with a *
 - **Make any title playable**: set `videoUrl` (films) or `episodeVideos: [...]` (series) in `src/data/catalog.js` — see `public/videos/README.txt`. Remote URLs and `.m3u8` streams work; HLS requires CORS-enabled hosting.
 - Note: this project does **not** and will not integrate pirated embed providers. Use licensed or open-content sources only.
 
+### 🌐 Live TMDB enrichment (optional, legal)
+- Set `VITE_TMDB_API_KEY` (see `.env.example`) and the browse pages gain **live worldwide shelves** — Trending Films/TV, Popular, In Cinemas Now, On The Air — with **real posters, backdrops, metadata and cast** from [TMDB](https://www.themoviedb.org/)
+- Their cards open a real-details modal with an **official YouTube trailer player** (youtube-nocookie embed), taglines, cast and TMDB-powered "More Like This"
+- 10-minute session cache; entire feature auto-disables when no key is set
+
+### ⏯️ Continue Watching + recommendations
+- Playback position (real streams *and* simulated previews) is saved per title/episode and surfaces as a **"Continue Watching for {profile}"** row with red progress bars — click play to **resume where you left off**
+- Finishing a title (97%+) auto-clears it; a **"Because you watched …"** row recomputes from your most recent watch
+- The player exposes real **subtitle / audio-track / quality menus** when the HLS stream carries them (try *Elephants Dream*), plus **Picture-in-Picture**
+
+### 💡 Roadmap ideas
+Kids-mode maturity lock per profile · Skip-Intro markers · thumbs-based taste profiling that reorders shelves · watch-party sync (WebRTC) · PWA install + offline caching of artwork · Chromecast/AirPlay via Remote Playback API · i18n (EN/HI) · downloads queue · per-title user ratings · A/B row ordering analytics
+
 ### 📌 My List + Reminders + Toasts
 - Add/remove titles from card hovers, modal and "More Like This" — persisted in `localStorage`
 - Coming-soon titles get a **Remind Me** bell; every action confirms with a toast
