@@ -2,13 +2,12 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { byId, moreLikeThis } from '../data/catalog.js'
 import Logo from './Logo.jsx'
 
-export default function Modal ({ showId, onClose, onPlay, hasInList, onToggleList, onPick, onToast }) {
+export default function Modal ({ showId, onClose, onPlay, hasInList, onToggleList, onPick, onToast, allowed, likes, onToggleLike }) {
   const show = byId[showId]
   const inThis = hasInList(show)
   const isSeries = show.type === 'series'
   const [tab, setTab] = useState(isSeries ? 'episodes' : 'similar')
   const [season, setSeason] = useState(1)
-  const [liked, setLiked] = useState(false)
   const boxRef = useRef(null)
 
   useEffect(() => {
@@ -26,7 +25,7 @@ export default function Modal ({ showId, onClose, onPlay, hasInList, onToggleLis
     return () => { document.body.style.overflow = prev; window.removeEventListener('keydown', esc) }
   }, [onClose])
 
-  const similar = useMemo(() => moreLikeThis(show), [show])
+  const similar = useMemo(() => moreLikeThis(show).filter((s) => !allowed || allowed(s)), [show, allowed])
   const seasons = Math.max(1, show.seasons || 1)
 
   if (!show) return null
@@ -65,7 +64,7 @@ export default function Modal ({ showId, onClose, onPlay, hasInList, onToggleLis
                   ? <svg viewBox="0 0 24 24"><path fill="currentColor" d="M9 16.2 4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4z"/></svg>
                   : <svg viewBox="0 0 24 24"><path fill="currentColor" d="M11 5h2v6h6v2h-6v6h-2v-6H5v-2h6V5z"/></svg>}
               </button>
-              <button className={`cbd big${liked ? ' ok' : ''}`} aria-label="Rate thumbs up" onClick={() => { setLiked((v) => !v); onToast(liked ? 'Rating removed' : 'Rated: Loved it') }}>
+              <button className={`cbd big${likes?.[show.id] ? ' ok' : ''}`} aria-label="Rate thumbs up" onClick={() => onToggleLike?.(show)}>
                 <svg viewBox="0 0 24 24"><path fill="currentColor" d="M2 20h2V9H2v11zm20-9a2 2 0 0 0-2-2h-6.3l.95-4.57.03-.32a1.5 1.5 0 0 0-.44-1.06L13.17 2 6.59 8.59A2 2 0 0 0 6 10v9a2 2 0 0 0 2 2h7.8a2 2 0 0 0 1.84-1.23l3-7.09c.1-.22.16-.46.16-.68v-1z"/></svg>
               </button>
             </div>
@@ -86,6 +85,7 @@ export default function Modal ({ showId, onClose, onPlay, hasInList, onToggleLis
                 <span className="agebox">{show.age}</span>
                 <span className="dim">{show.advisory}</span>
                 <span className="chip4k">4K Ultra HD</span>
+                {show.markers && <span className="chip4k">SKIP INTRO</span>}
               </div>
               <p className="m-syn">{show.syn}</p>
             </div>

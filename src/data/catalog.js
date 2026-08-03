@@ -6,23 +6,23 @@ const RAW = [
   // ── Flagship originals (with AI cinematic backdrops) ────────────────────────
   { id: 'neon-district', title: 'Neon District', type: 'series', year: 2026, age: 'TV-MA', seasons: 3,
     genres: ['Sci-Fi', 'Crime', 'Thriller'], original: true, backdrop: '/backdrops/neon-district.jpg',
-    palette: ['#071a45', '#0e3aa0'], pattern: 'glow', font: 'bebas', rank: '#1 in TV Shows Today',
+    palette: ['#071a45', '#0e3aa0'], markers: { intro: [78, 168], recap: [12, 74] }, pattern: 'glow', font: 'bebas', rank: '#1 in TV Shows Today',
     tags: ['cyberpunk', 'detective', 'noir', 'rainy city', 'conspiracy'],
     syn: 'In a rain-drowned megacity where memories can be stolen, a washed-out detective hunts the one suspect who knows her own erased past — and every clue glows neon blue and red.' },
   { id: 'iron-harbor', title: 'Iron Harbor', type: 'series', year: 2025, age: 'TV-MA', seasons: 2,
     genres: ['Crime', 'Drama', 'Mystery'], original: true, backdrop: '/backdrops/iron-harbor.jpg',
-    palette: ['#0a1626', '#1e4a73'], pattern: 'slash', font: 'oswald', rank: '#2 in TV Shows Today',
+    palette: ['#0a1626', '#1e4a73'], markers: { intro: [96, 182] }, pattern: 'slash', font: 'oswald', rank: '#2 in TV Shows Today',
     tags: ['port city', 'smuggling', 'family', 'slow burn', 'fog'],
     syn: 'A grieving dockmaster inherits his brother’s shipping empire — and the ledger of debts, bribes and bodies that came with it. The fog at Iron Harbor keeps everyone’s secrets. Almost.' },
   { id: 'the-long-dark', title: 'The Long Dark', type: 'series', year: 2026, age: 'TV-14', seasons: 1,
     genres: ['Sci-Fi', 'Mystery', 'Adventure'], original: true, backdrop: '/backdrops/the-long-dark.jpg',
-    palette: ['#04121f', '#10628a'], pattern: 'rays', font: 'oswald', rank: '#3 in TV Shows Today',
+    palette: ['#04121f', '#10628a'], markers: { intro: [88, 160] }, pattern: 'rays', font: 'oswald', rank: '#3 in TV Shows Today',
     tags: ['arctic', 'survival', 'aurora', 'isolation', 'expedition'],
     syn: 'Sixty days of polar night. Twelve scientists. One distress call that should not exist. At Station Vardø, the dark is not empty — it is patient.' },
 
   // ── Series — originals ──────────────────────────────────────────────────────
   { id: 'glasshouse', title: 'Glasshouse', type: 'series', year: 2024, age: 'TV-MA', seasons: 4,
-    genres: ['Drama', 'Thriller'], original: true, palette: ['#26060a', '#8f1020'], pattern: 'fold', font: 'serif',
+    genres: ['Drama', 'Thriller'], original: true, palette: ['#26060a', '#8f1020'], markers: { intro: [70, 150], recap: [10, 66] }, pattern: 'fold', font: 'serif',
     tags: ['political', 'family empire', 'secrets'], featured: true,
     syn: 'A media dynasty fractures when the patriarch dies live on air. Four heirs, one will, and a glass house where everyone can see everyone else’s knife.' },
   { id: 'bone-orchard', title: 'Bone Orchard', type: 'series', year: 2023, age: 'TV-MA', seasons: 2,
@@ -34,7 +34,7 @@ const RAW = [
     tags: ['coastal town', 'disappearance', 'tides'],
     syn: 'Every spring the tide returns something the sea took from the town — this year it returned Mara Venn, eleven years after she drowned.' },
   { id: 'midnight-circuit', title: 'Midnight Circuit', type: 'series', year: 2024, age: 'TV-MA', seasons: 3,
-    genres: ['Action', 'Crime', 'Thriller'], original: true, palette: ['#0d0d12', '#e50914'], pattern: 'strobe', font: 'bebas',
+    genres: ['Action', 'Crime', 'Thriller'], original: true, palette: ['#0d0d12', '#e50914'], markers: { intro: [72, 150] }, pattern: 'strobe', font: 'bebas',
     tags: ['street racing', 'heist', 'undercover'],
     syn: 'An undercover driver infiltrates an illegal midnight racing league that launders billions for a cartel — one checkpoint at a time.' },
   { id: 'the-undertow', title: 'The Undertow', type: 'series', year: 2025, age: 'TV-MA', seasons: 1,
@@ -46,11 +46,11 @@ const RAW = [
     tags: ['space station', 'ai', 'whodunit'],
     syn: 'Nine crew. One unblinking AI. When the station’s medic is found dead in a sealed module, VIGIL insists no one left the room.' },
   { id: 'kingdom-of-ash', title: 'Kingdom of Ash & Smoke', type: 'series', year: 2024, age: 'TV-MA', seasons: 3,
-    genres: ['Fantasy', 'Epic', 'Drama'], original: true, palette: ['#1c0a06', '#b0431f'], pattern: 'ember', font: 'serif',
+    genres: ['Fantasy', 'Epic', 'Drama'], original: true, palette: ['#1c0a06', '#b0431f'], markers: { intro: [102, 198], recap: [14, 82] }, pattern: 'ember', font: 'serif',
     tags: ['dragons', 'succession', 'war'],
     syn: 'The Dragon Throne sits empty, five banners burn, and the ash remembers every oath ever broken.' },
   { id: 'static', title: 'Static', type: 'series', year: 2025, age: 'TV-MA', seasons: 2,
-    genres: ['Sci-Fi', 'Horror', 'Mystery'], original: true, palette: ['#05070d', '#3d4a63'], pattern: 'strobe', font: 'mono',
+    genres: ['Sci-Fi', 'Horror', 'Mystery'], original: true, palette: ['#05070d', '#3d4a63'], markers: { intro: [84, 156] }, pattern: 'strobe', font: 'mono',
     tags: ['broadcast signal', 'analog horror', 'creepy'],
     syn: 'A late-night radio host traces a pirate signal that shouldn’t exist — and it starts answering her callers before they dial.' },
 
@@ -252,6 +252,37 @@ const RAW = [
 // ── deterministic helpers ────────────────────────────────────────────────────
 const hash = (s) => { let h = 7; for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0; return h }
 
+// User-uploaded licensed titles (via the Library Manager — localStorage `sh.custom`)
+const CUSTOM_ACCENTS = [['#0b1220', '#2e93ff'], ['#1a070c', '#e50914'], ['#06131f', '#18c6d8']]
+function readCustomRaw () {
+  if (typeof localStorage === 'undefined') return []
+  try {
+    const raw = JSON.parse(localStorage.getItem('sh.custom') || '[]')
+    if (!Array.isArray(raw)) return []
+    return raw
+      .filter((j) => j && j.id && j.title)
+      .map((j, i) => ({
+        id: String(j.id),
+        custom: true,
+        title: String(j.title).slice(0, 80),
+        type: j.type === 'series' ? 'series' : 'film',
+        year: Number(j.year) || new Date().getFullYear(),
+        age: ['TV-MA', 'TV-14', 'TV-PG', 'PG-13', 'R'].includes(j.age) ? j.age : 'TV-14',
+        seasons: j.type === 'series' ? Math.max(1, parseInt(j.seasons, 10) || 1) : undefined,
+        durMin: j.type !== 'series' ? (parseInt(j.durMin, 10) || 90) : undefined,
+        genres: Array.isArray(j.genres) && j.genres.length ? j.genres.map(String).slice(0, 4) : ['Drama'],
+        palette: CUSTOM_ACCENTS[i % CUSTOM_ACCENTS.length],
+        pattern: 'glow', font: 'bebas',
+        tags: Array.isArray(j.tags) ? j.tags.map(String) : ['licensed', 'uploaded'],
+        syn: String(j.syn || j.description || `${j.title} — from your licensed library.`),
+        videoUrl: typeof j.videoUrl === 'string' && j.videoUrl ? j.videoUrl : undefined,
+        episodeVideos: Array.isArray(j.episodeVideos) ? j.episodeVideos.filter((u) => typeof u === 'string' && u) : undefined
+      }))
+  } catch { return [] }
+}
+
+const ALL_RAW = [...RAW, ...readCustomRaw()]
+
 const ADVISORY = {
   'TV-MA': 'smoking, language, violence',
   'TV-14': 'fear, language, violence',
@@ -290,7 +321,7 @@ const CREATORS = ['Sable & Norr', 'M. Vasquez', 'The Dahl Collective', 'Ines Mor
 
 const fmtDur = (min) => `${Math.floor(min / 60)}h ${min % 60}m`
 
-export const SHOWS = RAW.map((r, i) => {
+export const SHOWS = ALL_RAW.map((r, i) => {
   const h = hash(r.id)
   const match = 86 + (h % 13)
   const episodes = r.type === 'series'

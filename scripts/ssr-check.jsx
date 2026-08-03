@@ -15,12 +15,14 @@ import SearchPage from '../src/components/SearchPage.jsx'
 import Footer from '../src/components/Footer.jsx'
 import TmdbShelves from '../src/components/TmdbShelf.jsx'
 import TmdbModal from '../src/components/TmdbModal.jsx'
+import KidsPin from '../src/components/KidsPin.jsx'
+import LibraryManager from '../src/components/LibraryManager.jsx'
 import { ROWS, FEATURED, byId } from '../src/data/catalog.js'
 
 const noop = () => {}
 const handlers = {
   onOpen: noop, onPlay: noop, onToggleList: noop, onRemind: noop,
-  inList: () => false, reminded: () => false
+  inList: () => false, reminded: () => false, onLike: noop, liked: () => false
 }
 
 const cases = {
@@ -35,13 +37,15 @@ const cases = {
   Card: <Card show={byId['neon-district']} variant="land" {...handlers} />,
   CardSoon: <Card show={byId['red-horizon']} variant="land" {...handlers} />,
   ModalSeries: <Modal showId="neon-district" onClose={noop} onPlay={noop} hasInList={() => true}
-            onToggleList={noop} onPick={noop} onToast={noop} />,
+            onToggleList={noop} onPick={noop} onToast={noop} allowed={() => true} likes={{}} onToggleLike={noop} />,
   ModalFilm: <Modal showId="vermillion" onClose={noop} onPlay={noop} hasInList={() => false}
-            onToggleList={noop} onPick={noop} onToast={noop} />,
-  Player: <Player showId="iron-harbor" epIdx={0} startAt={120} onClose={noop} onToast={noop} onProgress={noop} />,
-  PlayerReal: <Player showId="big-buck-bunny" epIdx={0} startAt={0} onClose={noop} onToast={noop} onProgress={noop} />,
+            onToggleList={noop} onPick={noop} onToast={noop} allowed={() => true} likes={{}} onToggleLike={noop} />,
+  Player: <Player showId="iron-harbor" epIdx={0} startAt={120} partyJoin={null} onClose={noop} onToast={noop} onProgress={noop} />,
+  PlayerReal: <Player showId="big-buck-bunny" epIdx={0} startAt={0} partyJoin={null} onClose={noop} onToast={noop} onProgress={noop} />,
   TmdbShelves: <TmdbShelves tab="home" onOpen={noop} />,        // renders null when no API key — expected
   TmdbModal: <TmdbModal sel={{ type: 'movie', id: 27205, trailer: false }} onClose={noop} onPick={noop} />,
+  KidsPin: <KidsPin mode="verify" expected="1234" title="Kids profile is locked" onClose={noop} onDone={noop} />,
+  LibraryManager: <LibraryManager existingCount={0} onClose={noop} onSaved={noop} onToast={noop} />,
   SearchPage: <SearchPage query="neon" onQuery={noop} handlers={handlers} />,
   SearchEmpty: <SearchPage query="zzz nothing" onQuery={noop} handlers={handlers} />,
   SearchBlank: <SearchPage query="" onQuery={noop} handlers={handlers} />,

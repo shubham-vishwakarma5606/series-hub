@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Boot from './components/Boot.jsx'
 import Profiles, { PROFILES } from './components/Profiles.jsx'
 import Navbar from './components/Navbar.jsx'
@@ -12,17 +12,23 @@ import Footer from './components/Footer.jsx'
 import Logo from './components/Logo.jsx'
 import TmdbShelves from './components/TmdbShelf.jsx'
 import TmdbModal from './components/TmdbModal.jsx'
-import { ROWS, FEATURED, byId, moreLikeThis } from './data/catalog.js'
+import KidsPin from './components/KidsPin.jsx'
+import LibraryManager from './components/LibraryManager.jsx'
+import { ROWS, FEATURED, SHOWS, byId, moreLikeThis } from './data/catalog.js'
+import { kidsAllowed } from './utils/ratings.js'
 
 const read = (k, fb) => {
   try { const v = JSON.parse(localStorage.getItem(k)); return v ?? fb } catch { return fb }
 }
+
+const KEEP_RORDER = ['top10', 'originals', 'continue', 'playnow', 'custom', 'byw']
 
 export default function App () {
   const [screen, setScreen] = useState('boot') // boot -> profiles -> app
   const [profile, setProfile] = useState(() => read('sh.profile', null))
   const [myList, setMyList] = useState(() => new Set(read('sh.mylist', [])))
   const [reminded, setReminded] = useState(() => new Set(read('sh.remind', [])))
+  const [likes, setLikes] = useState(() => read('sh.likes', {}))
   const [tab, setTab] = useState('home')
   const [searchOpen, setSearchOpen] = useState(false)
   const [query, setQuery] = useState('')
@@ -30,6 +36,16 @@ export default function App () {
   const [tmdbSel, setTmdbSel] = useState(null) // { type, id, trailer }
   const [player, setPlayer] = useState(null) // { showId, epIdx, startAt }
   const [progress, setProgress] = useState(() => read('sh.progress', {}))
+  const [pinAsk, setPinAsk] = useState(null) // 'exit' | 'setup'
+  const [libOpen, setLibOpen] = useState(false)
+  const [installEvt, setInstallEvt] = useState(null)
+  const [partyCode] = useState(() => {
+    try {
+      const c = new URLSearchParams(window.location.search).get('party')
+      if (c) window.history.replaceState({}, '', window.location.pathname)
+      return c || null
+    } catch { return null }
+  })
   const [toast, setToast] = useState(null)
   const toastTimer = useRef(null)
 
@@ -43,6 +59,28 @@ export default function App () {
     try { localStorage.setItem(k, JSON.stringify([...set])) } catch {}
   }
 
+  // ── profile / kids helpers ────────────────────────────────────────────────
+  const storedPin = () => { try { return JSON.parse(localStorage.getItem('sh.pin')) } catch { return null } }
+  const allowed = useCallback((s) => !profile?.kids || kidsAllowed(s), [profile])
+
+  const pickProfile = (p) => {
+    setProfile(p)
+    try { localStorage.setItem('sh.profile', JSON.stringify(p)) } catch {}
+    setScreen('app')
+  }
+
+  const switchProfile = () => {
+    try { localStorage.removeItem('sh.profile') } catch {}
+    setProfile(PROFILES[0])
+    setScreen('profiles')
+  }
+
+  const guardedSwitch = () => {
+    if (profile?.kids && storedPin()) setPinAsk('exit')
+    else switchProfile()
+  }
+
+  // ── my list / remind / likes ──────────────────────────────────────────────
   const hasInList = useCallback((s) => myList.has(typeof s === 'string' ? s : s.id), [myList])
 
   const toggleList = useCallback((show) => {
@@ -66,66 +104,128 @@ export default function App () {
     })
   }, [say])
 
-  const openModal = useCallback((show) => setModalId(show.id), [])
-  const play = useCallback((show, epIdx = 0, startAt = 0) => setPlayer({ showId: show.id, epIdx, startAt }), [])
+  const toggleLike = useCallback((show) => {
+    const on = !likes[show.id]
+    setLikes((prev) => {
+      const next = { ...prev, [show.id]: on ? 1 : 0 }
+      try { localStorage.setItem('sh.likes', JSON.stringify(next)) } catch {}
+      return next
+    })
+    say(on ? `Liked “${show.title}” — more ${show.genres[0]} coming your way` : 'Preference updated')
+  }, [likes, say])
+
+  // ── playback / progress ───────────────────────────────────────────────────
+  const openModal = useCallback((show) => {
+    if (profile?.kids && !kidsAllowed(show)) { say(`“${show.title}” isn’t available on the Kids profile`); return }
+    setModalId(show.id)
+  }, [profile, say])
+
+  const play = useCallback((show, epIdx = 0, startAt = 0) => {
+    if (profile?.kids && !kidsAllowed(show)) { say(`“${show.title}” isn’t available on the Kids profile`); return }
+    setPlayer({ showId: show.id, epIdx, startAt })
+  }, [profile, say])
+
   const openTmdb = useCallback((item, trailer = false) => setTmdbSel({ type: item.type, id: item.id, trailer }), [])
 
-  // "Continue Watching" — persisted playback progress
   const saveProgress = useCallback((rec) => {
     const pct = rec.dur ? rec.t / rec.dur : 0
     const key = `${rec.showId}:${rec.ep}`
     setProgress((prev) => {
-      if (rec.t <= 25 && !prev[key]) return prev // don't create noise
+      if (rec.t <= 25 && !prev[key]) return prev
       const next = { ...prev }
-      if (pct >= 0.97) delete next[key] // finished → drop from Continue Watching
+      if (pct >= 0.97) delete next[key]
       else if (rec.t > 25) next[key] = rec
       try { localStorage.setItem('sh.progress', JSON.stringify(next)) } catch {}
       return next
     })
   }, [])
 
-  const continueItems = Object.values(progress)
+  // ── derived shelves: continue watching / because you watched / top picks ──
+  const continueItems = useMemo(() => Object.values(progress)
     .filter((r) => r.dur && r.t > 25 && r.t / r.dur < 0.97 && byId[r.showId])
     .sort((a, b) => b.at - a.at)
     .slice(0, 12)
-    .map((r) => ({ ...byId[r.showId], _pct: r.t / r.dur, _ep: r.ep, _t: r.t }))
+    .map((r) => ({ ...byId[r.showId], _pct: r.t / r.dur, _ep: r.ep, _t: r.t })), [progress])
 
-  const lastWatched = Object.values(progress).sort((a, b) => b.at - a.at).map((r) => byId[r.showId]).find(Boolean)
+  const lastWatched = useMemo(() => Object.values(progress)
+    .sort((a, b) => b.at - a.at)
+    .map((r) => byId[r.showId])
+    .find(Boolean), [progress])
+
+  // taste graph: likes weigh most, then list adds, then watch history
+  const taste = useMemo(() => {
+    const g = {}
+    for (const [id, v] of Object.entries(likes)) {
+      if (v && byId[id]) byId[id].genres.forEach((x) => { g[x] = (g[x] || 0) + 2 })
+    }
+    for (const id of myList) byId[id]?.genres.forEach((x) => { g[x] = (g[x] || 0) + 0.6 })
+    for (const r of Object.values(progress)) byId[r.showId]?.genres.forEach((x) => { g[x] = (g[x] || 0) + 0.5 })
+    return g
+  }, [likes, myList, progress])
+  const hasTaste = Object.values(taste).some((v) => v >= 2)
+  const scoreItem = useCallback((s) => s.genres.reduce((a, g) => a + (taste[g] || 0), 0), [taste])
+
+  const customItems = useMemo(() => SHOWS.filter((s) => s.custom), [])
+
+  const heroItems = useMemo(() => (
+    profile?.kids ? SHOWS.filter(kidsAllowed).slice(0, 3) : FEATURED
+  ), [profile])
+
+  const rows = useMemo(() => {
+    const dyn = []
+    if (tab === 'home') {
+      if (customItems.length && !profile?.kids) {
+        dyn.push({ key: 'custom', title: 'Your Licensed Library', variant: 'land', items: customItems })
+      }
+      if (continueItems.length) {
+        dyn.push({ key: 'continue', title: `Continue Watching for ${profile?.name || 'You'}`, variant: 'land', items: continueItems.filter(allowed) })
+      }
+      if (lastWatched) {
+        dyn.push({ key: 'byw', title: `Because you watched “${lastWatched.title}”`, variant: 'land', items: moreLikeThis(lastWatched, 12) })
+      }
+      if (hasTaste) {
+        dyn.push({
+          key: 'picks', title: `Top Picks for ${profile?.name || 'You'}`, variant: 'land',
+          items: [...SHOWS].filter((s) => !s.comingSoon).sort((a, b) => scoreItem(b) - scoreItem(a)).slice(0, 12)
+        })
+      }
+    }
+    let out = [...dyn, ...(ROWS[tab] || ROWS.home)]
+    out = out.map((r) => ({ ...r, items: r.items.filter(allowed) })).filter((r) => r.items.length)
+    if (hasTaste) {
+      out = out.map((r) => KEEP_RORDER.includes(r.key) ? r : { ...r, items: [...r.items].sort((a, b) => scoreItem(b) - scoreItem(a)) })
+    }
+    return out
+  }, [tab, customItems, continueItems, lastWatched, hasTaste, allowed, profile, scoreItem])
+
+  // ── PWA install prompt ────────────────────────────────────────────────────
+  useEffect(() => {
+    const onBip = (e) => { e.preventDefault(); setInstallEvt(e) }
+    window.addEventListener('beforeinstallprompt', onBip)
+    return () => window.removeEventListener('beforeinstallprompt', onBip)
+  }, [])
+
+  const onInstall = useCallback(async () => {
+    if (!installEvt) return
+    try {
+      const r = await installEvt.prompt()
+      say(r?.outcome === 'accepted' ? 'Installing Series Hub…' : 'Install dismissed')
+    } catch { say('Install is not available right now') }
+    setInstallEvt(null)
+  }, [installEvt, say])
 
   useEffect(() => { window.scrollTo({ top: 0 }) }, [tab, searchOpen])
 
-  const pickProfile = (p) => {
-    setProfile(p)
-    try { localStorage.setItem('sh.profile', JSON.stringify(p)) } catch {}
-    setScreen('app')
-  }
-
-  const switchProfile = () => {
-    try { localStorage.removeItem('sh.profile') } catch {}
-    setProfile(PROFILES[0])
-    setScreen('profiles')
-  }
-
-  const handlers = {
-    onOpen: openModal,
-    onPlay: play,
-    inList: hasInList,
-    onToggleList: toggleList,
-    onRemind: toggleRemind,
-    reminded: (s) => reminded.has(s.id)
-  }
-
-  const baseRows = ROWS[tab] || ROWS.home
-  const dynRows = []
-  if (tab === 'home') {
-    if (continueItems.length) {
-      dynRows.push({ key: 'continue', title: `Continue Watching for ${profile?.name || 'You'}`, variant: 'land', items: continueItems })
+  const onPinDone = (pin) => {
+    if (pinAsk === 'exit') switchProfile()
+    else if (pinAsk === 'setup' && pin) {
+      try { localStorage.setItem('sh.pin', JSON.stringify(pin)) } catch {}
+      say('Kids profile lock PIN saved')
     }
-    if (lastWatched) {
-      dynRows.push({ key: 'byw', title: `Because you watched “${lastWatched.title}”`, variant: 'land', items: moreLikeThis(lastWatched, 12) })
-    }
+    setPinAsk(null)
   }
-  const rows = [...dynRows, ...baseRows]
+
+  const myListItems = [...myList].map((id) => byId[id]).filter(Boolean).filter(allowed)
 
   return (
     <>
@@ -138,7 +238,10 @@ export default function App () {
             tab={tab}
             onTab={setTab}
             profile={profile}
-            onSwitchProfile={switchProfile}
+            onSwitchProfile={guardedSwitch}
+            onKidsSettings={() => setPinAsk('setup')}
+            onUpload={() => setLibOpen(true)}
+            onInstall={installEvt ? onInstall : null}
             query={query}
             onQuery={setQuery}
             searchOpen={searchOpen}
@@ -146,27 +249,41 @@ export default function App () {
           />
 
           {searchOpen ? (
-            <SearchPage query={query} onQuery={setQuery} handlers={handlers} />
+            <SearchPage query={query} onQuery={setQuery} showFilter={profile?.kids ? allowed : null} handlers={{
+              onOpen: openModal,
+              onPlay: play,
+              inList: hasInList,
+              onToggleList: toggleList,
+              onRemind: toggleRemind,
+              reminded: (s) => reminded.has(s.id),
+              onLike: toggleLike,
+              liked: (s) => !!likes[s.id]
+            }} />
           ) : tab === 'mylist' ? (
             <main className="mylist">
               <h1 className="mylist-h">My List</h1>
-              {myList.size === 0 ? (
+              {myListItems.length === 0 ? (
                 <div className="mylist-empty">
                   <Logo muted />
                   <p>You haven’t added any titles to your list yet.</p>
-                  <button className="btn-info" onClick={() => setTab('home')}><span>Browse titles</span></button>
+                  <div style={{ display: 'flex', gap: '.8rem' }}>
+                    <button className="btn-info" onClick={() => setTab('home')}><span>Browse titles</span></button>
+                    {!profile?.kids && <button className="btn-info" onClick={() => setLibOpen(true)}><span>Upload licensed titles</span></button>}
+                  </div>
                 </div>
               ) : (
                 <div className="sp-grid">
-                  {[...myList].map((id) => byId[id]).filter(Boolean).map((s) => (
-                    <Card key={s.id} show={s} variant="land" {...handlers} />
+                  {myListItems.map((s) => (
+                    <Card key={s.id} show={s} variant="land"
+                      onOpen={openModal} onPlay={play} inList={hasInList} onToggleList={toggleList}
+                      onRemind={toggleRemind} reminded={(x) => reminded.has(x.id)} onLike={toggleLike} liked={(x) => !!likes[x.id]} />
                   ))}
                 </div>
               )}
             </main>
           ) : (
             <main className="browse">
-              <Hero items={FEATURED} onPlay={(s) => play(s)} onInfo={openModal} />
+              <Hero items={heroItems} onPlay={(s) => play(s)} onInfo={openModal} />
               <div className="rows">
                 {rows.map((r) => (
                   <Row
@@ -174,10 +291,17 @@ export default function App () {
                     title={r.title}
                     items={r.items}
                     variant={r.variant}
-                    {...handlers}
+                    onOpen={openModal}
+                    onPlay={play}
+                    inList={hasInList}
+                    onToggleList={toggleList}
+                    onRemind={toggleRemind}
+                    reminded={(s) => reminded.has(s.id)}
+                    onLike={toggleLike}
+                    liked={(s) => !!likes[s.id]}
                   />
                 ))}
-                <TmdbShelves tab={tab} onOpen={openTmdb} />
+                {!profile?.kids && <TmdbShelves tab={tab} onOpen={openTmdb} />}
               </div>
             </main>
           )}
@@ -193,8 +317,11 @@ export default function App () {
           onPlay={(s, i) => { setModalId(null); play(s, i) }}
           hasInList={hasInList}
           onToggleList={toggleList}
-          onPick={(id) => setModalId(id)}
+          onPick={(id) => { const s = byId[id]; if (s) openModal(s) }}
           onToast={say}
+          allowed={allowed}
+          likes={likes}
+          onToggleLike={toggleLike}
         />
       )}
 
@@ -203,6 +330,7 @@ export default function App () {
           showId={player.showId}
           epIdx={player.epIdx}
           startAt={player.startAt}
+          partyJoin={partyCode}
           onClose={() => setPlayer(null)}
           onToast={say}
           onProgress={saveProgress}
@@ -214,6 +342,26 @@ export default function App () {
           sel={tmdbSel}
           onClose={() => setTmdbSel(null)}
           onPick={(s) => setTmdbSel(s)}
+        />
+      )}
+
+      {pinAsk && (
+        <KidsPin
+          mode={pinAsk === 'setup' ? 'setup' : 'verify'}
+          expected={storedPin() || undefined}
+          title="Kids profile is locked"
+          subtitle="Enter the household PIN to leave Kids mode"
+          onClose={() => setPinAsk(null)}
+          onDone={onPinDone}
+        />
+      )}
+
+      {libOpen && (
+        <LibraryManager
+          existingCount={customItems.length}
+          onClose={() => setLibOpen(false)}
+          onSaved={() => setLibOpen(false)}
+          onToast={say}
         />
       )}
 

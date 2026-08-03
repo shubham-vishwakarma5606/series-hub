@@ -1,10 +1,11 @@
 import { searchCatalog, SHOWS } from '../data/catalog.js'
 import Card from './Card.jsx'
 
-export default function SearchPage ({ query, onQuery, handlers }) {
+export default function SearchPage ({ query, onQuery, showFilter, handlers }) {
   const results = searchCatalog(query)
-  const related = [...new Set(results.slice(0, 4).flatMap((s) => s.genres))].slice(0, 5)
-  const fallback = [...SHOWS].sort((a, b) => b.match - a.match).slice(0, 12)
+  const vis = showFilter ? results.filter(showFilter) : results
+  const related = [...new Set(vis.slice(0, 4).flatMap((s) => s.genres))].slice(0, 5)
+  const fallback = [...SHOWS].filter(showFilter || (() => true)).sort((a, b) => b.match - a.match).slice(0, 12)
 
   return (
     <main className="search-page">
@@ -23,7 +24,7 @@ export default function SearchPage ({ query, onQuery, handlers }) {
           </>
         )}
 
-        {query.trim() && results.length > 0 && (
+        {query.trim() && vis.length > 0 && (
           <>
             <p className="sp-explore">Explore titles related to:&nbsp;
               {related.map((g) => (
@@ -31,12 +32,12 @@ export default function SearchPage ({ query, onQuery, handlers }) {
               ))}
             </p>
             <div className="sp-grid">
-              {results.map((s) => <Card key={s.id} show={s} variant="land" {...handlers} />)}
+              {vis.map((s) => <Card key={s.id} show={s} variant="land" {...handlers} />)}
             </div>
           </>
         )}
 
-        {query.trim() && results.length === 0 && (
+        {query.trim() && vis.length === 0 && (
           <div className="sp-none">
             <p>Your search for “<b>{query}</b>” did not have any matches.</p>
             <p className="dim">Suggestions:</p>

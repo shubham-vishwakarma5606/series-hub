@@ -27,7 +27,7 @@ function Avatar ({ profile }) {
   )
 }
 
-export default function Navbar ({ tab, onTab, profile, onSwitchProfile, query, onQuery, searchOpen, onToggleSearch }) {
+export default function Navbar ({ tab, onTab, profile, onSwitchProfile, onKidsSettings, onUpload, onInstall, query, onQuery, searchOpen, onToggleSearch }) {
   const [solid, setSolid] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
   const [bellOpen, setBellOpen] = useState(false)
@@ -130,19 +130,44 @@ export default function Navbar ({ tab, onTab, profile, onSwitchProfile, query, o
           {menuOpen && (
             <div className="nav-dd acct" role="menu">
               <span className="dd-caret" />
-              <div className="acct-row">
-                <Avatar profile={profile} />
-                <span>
-                  <b>{profile.name}</b>
-                  <button className="acct-link" onClick={() => { setMenuOpen(false); onSwitchProfile() }}>Switch profile</button>
-                </span>
-              </div>
-              <hr />
-              <button className="acct-item">Manage Profiles</button>
-              <button className="acct-item">Account</button>
-              <button className="acct-item">Help Center</button>
-              <hr />
-              <button className="acct-item center" onClick={() => { setMenuOpen(false); onSwitchProfile() }}>Sign out of Series Hub</button>
+              {profile.kids ? (
+                <>
+                  <div className="acct-row">
+                    <Avatar profile={profile} />
+                    <span>
+                      <b>{profile.name}</b>
+                      <i className="acct-kids">Kids profile · maturity lock on</i>
+                    </span>
+                  </div>
+                  <hr />
+                  <button className="acct-item center" onClick={() => { setMenuOpen(false); onSwitchProfile() }}>
+                    Exit Kids profile 🔒
+                  </button>
+                </>
+              ) : (
+                <>
+                  <div className="acct-row">
+                    <Avatar profile={profile} />
+                    <span>
+                      <b>{profile.name}</b>
+                      <button className="acct-link" onClick={() => { setMenuOpen(false); onSwitchProfile() }}>Switch profile</button>
+                    </span>
+                  </div>
+                  <hr />
+                  <button className="acct-item" onClick={() => { setMenuOpen(false); onSwitchProfile() }}>Manage Profiles</button>
+                  <button className="acct-item" onClick={() => { setMenuOpen(false); onKidsSettings?.() }}>Kids Profile Lock (PIN)</button>
+                  <button className="acct-item" onClick={() => { setMenuOpen(false); onUpload?.() }}>Upload Licensed Titles</button>
+                  <button className="acct-item">Help Center</button>
+                  {onInstall && (
+                    <>
+                      <hr />
+                      <button className="acct-item" onClick={() => { setMenuOpen(false); onInstall() }}>Install Series Hub App</button>
+                    </>
+                  )}
+                  <hr />
+                  <button className="acct-item center" onClick={() => { setMenuOpen(false); onSwitchProfile() }}>Sign out of Series Hub</button>
+                </>
+              )}
             </div>
           )}
         </div>

@@ -50,8 +50,30 @@ A fully client-side, Netflix-style OTT streaming experience — rebuilt with a *
 - Finishing a title (97%+) auto-clears it; a **"Because you watched …"** row recomputes from your most recent watch
 - The player exposes real **subtitle / audio-track / quality menus** when the HLS stream carries them (try *Elephants Dream*), plus **Picture-in-Picture**
 
-### 💡 Roadmap ideas
-Kids-mode maturity lock per profile · Skip-Intro markers · thumbs-based taste profiling that reorders shelves · watch-party sync (WebRTC) · PWA install + offline caching of artwork · Chromecast/AirPlay via Remote Playback API · i18n (EN/HI) · downloads queue · per-title user ratings · A/B row ordering analytics
+### 🧒 Kids profile lock
+- The **Kids** profile only surfaces TV-PG/PG-13 titles (rows, hero, search, My List, "More Like This"); TMDB shelves and locked-play are hidden/blocked with toasts
+- Adults can set a **household PIN** (account menu → *Kids Profile Lock*) — after that, exiting the Kids profile requires the 4-digit PIN pad
+
+### ⏭️ Skip Intro / Skip Recap
+- Original series carry per-episode `markers` in `src/data/catalog.js`; during playback the matching **Skip Intro / Skip Recap** pill appears (and broadcasts over Watch Party)
+
+### 🧠 Taste profiling
+- 👍 on any card/modal feeds a genre taste-graph (likes × 2, list adds × 0.6, watch history × 0.5)
+- Home gets a **"Top Picks for {name}"** shelf and generic shelves reorder by your taste; Top 10 / Originals rows keep editorial order
+
+### 📲 PWA
+- Installable (manifest + generated icons, install menu item appears when the browser offers it) and the service worker **precaches posters/backdrops/fonts** for instant reopens
+
+### 🎉 Watch Party
+- Player people-icon → start a room (4-letter code) or paste a code; **play / pause / seek / episode changes sync live** across tabs, with invite-link copy and presence count
+- Transport is `BroadcastChannel` (works across tabs of one browser — open the invite link in a second tab to try); swap `src/utils/party.js` for a WebSocket/WebRTC adapter to go multi-device without touching app code
+
+### 📺 Chromecast / AirPlay
+- Real streams get a **Cast button** via the Remote Playback API when a device is in range; chrome shows *PLAYING ON TV* while connected
+
+### 🗃️ Bring-your-own catalogue
+- Account menu → **Upload Licensed Titles**: paste/upload a JSON manifest of content you own/are licensed to host (schema + validator built in, per-entry error report) — valid titles merge into the catalogue, TMDB-style card, playable player, plus a **"Your Licensed Library"** shelf; removals supported
+
 
 ### 📌 My List + Reminders + Toasts
 - Add/remove titles from card hovers, modal and "More Like This" — persisted in `localStorage`

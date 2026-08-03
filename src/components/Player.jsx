@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { byId } from '../data/catalog.js'
 import Logo from './Logo.jsx'
+import { PARTY_SUPPORTED, makeRoomCode, joinParty, sendParty, leaveParty } from '../utils/party.js'
 
 const fmt = (t) => {
   if (!Number.isFinite(t)) return '--:--'
@@ -16,7 +17,7 @@ const isHls = (u) => /\.m3u8($|\?)/i.test(u)
 //           with hls.js track menus (audio / subtitles / quality) + PiP
 //  • SIMULATED — marked cinematic preview when no stream is configured
 // Both modes feed "Continue Watching" via onProgress and support resume (startAt).
-export default function Player ({ showId, epIdx = 0, startAt = 0, onClose, onToast, onProgress }) {
+export default function Player ({ showId, epIdx = 0, startAt = 0, partyJoin = null, onClose, onToast, onProgress }) {
   const show = byId[showId]
   const isSeries = show.type === 'series'
   const [epN, setEpN] = useState(Math.min(epIdx, (show.episodes || []).length - 1))
@@ -40,6 +41,14 @@ export default function Player ({ showId, epIdx = 0, startAt = 0, onClose, onToa
   const [levels, setLevels] = useState([]); const [selQ, setSelQ] = useState(-1)
   const [menu, setMenu] = useState(null)
 
+  const [partyCode, setPartyCode] = useState(null)
+  const [partyPeers, setPartyPeers] = useState(1)
+  const [partyInput, setPartyInput] = useState('')
+  const [castAvail, setCastAvail] = useState(false)
+  const [casting, setCasting] = useState(false)
+  const applyingRemote = useRef(false)
+  const partyRef = useRef(null)
+
   const idle = useRef(null)
   const barRef = useRef(null)
   const videoRef = useRef(null)
@@ -56,6 +65,7 @@ export default function Player ({ showId, epIdx = 0, startAt = 0, onClose, onToa
   const latestRef = useRef(null)
   latestRef.current = { showId, ep: epNo, t, dur: duration }
   const pipOk = typeof document !== 'undefined' && !!document.pictureInPictureEnabled
+  partyRef.current = partyCode
 
   const poke = () => {
     setCtl(true)
@@ -164,6 +174,7 @@ export default function Player ({ showId, epIdx = 0, startAt = 0, onClose, onToa
   // ── controls ──────────────────────────────────────────────────────────────
   const togglePlay = () => {
     poke()
+    const willPlay = real ? videoRef.current?.paused ?? !playing : !playing
     if (real) {
       const v = videoRef.current
       if (!v) return
@@ -174,6 +185,7 @@ export default function Player ({ showId, epIdx = 0, startAt = 0, onClose, onToa
       if (ended) setT(0)
       setPlaying((p) => !p)
     }
+    broadcast(willPlay ? 'play' : 'pause')
   }
 
   const seekTo = (sec) => {
@@ -182,17 +194,23 @@ export default function Player ({ showId, epIdx = 0, startAt = 0, onClose, onToa
     setT(clamped)
     poke()
   }
-  const seekBy = (d) => seekTo((real ? videoRef.current?.currentTime || 0 : t) + d)
+  const seekBy = (d) => {
+    const target = (real ? videoRef.current?.currentTime || 0 : t) + d
+    seekTo(target)
+    broadcast('seek', { t: Math.min(Math.max(0, target), duration || 0) })
+  }
 
   const seekClick = (e) => {
     const r = barRef.current.getBoundingClientRect()
     const pct = Math.min(1, Math.max(0, (e.clientX - r.left) / r.width))
     seekTo(pct * duration)
+    broadcast('seek', { t: pct * duration })
   }
 
   const pickEp = (ix) => {
     setEpN(ix); setT(0); setEndedReal(false); setPlaying(true); setDrawer(false)
     onToast(`Now playing S1:E${ix + 1} “${show.episodes[ix].title}”`)
+    broadcast('ep', { i: ix })
   }
 
   const toggleMute = () => {
@@ -223,6 +241,61 @@ export default function Player ({ showId, epIdx = 0, startAt = 0, onClose, onToa
     setMenu(null)
   }
 
+  // ── Watch Party (BroadcastChannel tabs sync) ─────────────────────────────
+  const broadcast = (kind, data = {}) => {
+    if (!applyingRemote.current && partyRef.current) sendParty({ kind, ...data })
+  }
+
+  const applyRemote = (m) => {
+    applyingRemote.current = true
+    try {
+      if (m.kind === 'play') { real ? videoRef.current?.play?.().catch(() => {}) : setPlaying(true); onToast('Party: play') }
+      else if (m.kind === 'pause') { real ? videoRef.current?.pause?.() : setPlaying(false); onToast('Party: pause') }
+      else if (m.kind === 'seek' && Number.isFinite(m.t)) { seekTo(m.t); onToast(`Party: jumped to ${fmt(m.t)}`) }
+      else if (m.kind === 'ep' && isSeries && show.episodes[m.i]) pickEp(m.i)
+    } finally {
+      setTimeout(() => { applyingRemote.current = false }, 0)
+    }
+  }
+
+  const partyStart = (code) => {
+    const c = joinParty(code, { onEvent: applyRemote, onPresence: (n) => setPartyPeers(n) })
+    if (c) { setPartyCode(c); setMenu(null); onToast(`Watch Party “${c}” live — invite link opens a synced tab`) }
+    else onToast('Watch Party is not supported in this browser')
+  }
+
+  const copyInvite = () => {
+    const link = `${window.location.origin}${window.location.pathname}?party=${partyCode}`
+    if (navigator.clipboard?.writeText) navigator.clipboard.writeText(link).then(() => onToast('Invite link copied — open it in another tab')).catch(() => onToast(`Room code: ${partyCode}`))
+    else onToast(`Room code: ${partyCode}`)
+  }
+
+  useEffect(() => () => leaveParty(), [])
+  useEffect(() => {
+    if (partyJoin && PARTY_SUPPORTED && !partyRef.current) partyStart(partyJoin)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [partyJoin])
+
+  // ── Chromecast / AirPlay (Remote Playback API) ───────────────────────────
+  useEffect(() => {
+    if (!real) { setCastAvail(false); setCasting(false); return undefined }
+    const r = videoRef.current?.remote
+    if (!r || typeof r.watchAvailability !== 'function') return undefined
+    let cancelled = false
+    r.watchAvailability((a) => { if (!cancelled) setCastAvail(a) }).catch(() => setCastAvail(false))
+    const onState = () => setCasting(r.state === 'connecting' || r.state === 'connected')
+    r.addEventListener('connect', onState)
+    r.addEventListener('disconnect', onState)
+    onState()
+    return () => { cancelled = true; r.removeEventListener('connect', onState); r.removeEventListener('disconnect', onState) }
+  }, [src, real]);
+
+  const cast = () => {
+    const r = videoRef.current?.remote
+    if (!r) return
+    r.prompt().catch((e) => { if (e?.name !== 'NotAllowedError') onToastRef.current?.('Could not start casting') })
+  }
+
   // ── video element events (real mode) ─────────────────────────────────────
   const onVid = {
     onTimeUpdate: (e) => { setT(e.currentTarget.currentTime); report(e.currentTarget.currentTime, e.currentTarget.duration) },
@@ -244,6 +317,14 @@ export default function Player ({ showId, epIdx = 0, startAt = 0, onClose, onToa
   }
 
   const label = isSeries ? `S1:E${ep.n} “${ep.title}”` : show.title
+
+  // Netflix-style Skip Intro / Skip Recap markers from the catalogue
+  const mk = show.markers
+  let skip = null
+  if (mk && !ended) {
+    if (mk.intro && t >= mk.intro[0] && t < mk.intro[1]) skip = { label: 'Skip Intro', to: mk.intro[1] }
+    else if (mk.recap && t >= mk.recap[0] && t < mk.recap[1]) skip = { label: 'Skip Recap', to: mk.recap[1] }
+  }
 
   return (
     <div className={`player${ctl ? ' showctl' : ''}`} onMouseMove={poke} onTouchStart={poke}>
@@ -294,13 +375,20 @@ export default function Player ({ showId, epIdx = 0, startAt = 0, onClose, onToa
         </div>
       )}
 
+      {skip && (
+        <button className="p-skip" onClick={() => { seekTo(skip.to); broadcast('seek', { t: skip.to }); onToast(`${skip.label} → skipped`) }}>
+          {skip.label}
+        </button>
+      )}
+
       {/* top chrome */}
       <div className="p-top">
         <button className="p-back" onClick={onClose} aria-label="Back to browse">
           <svg viewBox="0 0 24 24"><path fill="currentColor" d="M20 11H7.8l5.6-5.6L12 4l-8 8 8 8 1.4-1.4L7.8 13H20v-2z"/></svg>
         </button>
         <span className="p-brand"><Logo compact /></span>
-        <span className="p-flag">{real ? 'HD · LIVE SOURCE' : '4K ULTRA HD · DOLBY VISION'}</span>
+        {partyCode && <span className="p-flag party">● PARTY{partyPeers > 1 ? ` ×${partyPeers}` : ''}</span>}
+        <span className="p-flag">{casting ? 'PLAYING ON TV' : real ? 'HD · LIVE SOURCE' : '4K ULTRA HD · DOLBY VISION'}</span>
       </div>
 
       {/* track / quality menus (real HLS only) */}
@@ -332,6 +420,28 @@ export default function Player ({ showId, epIdx = 0, startAt = 0, onClose, onToa
               {o.name}{selQ === o.i && <span>✓</span>}
             </button>
           ))}
+        </div>
+      )}
+      {menu === 'party' && (
+        <div className="px-menu party" role="menu">
+          <h5>Watch Party{!PARTY_SUPPORTED && ' — unsupported browser'}</h5>
+          {partyCode ? (
+            <>
+              <p className="party-status">Room <b>{partyCode}</b> · {partyPeers} connected</p>
+              <button onClick={copyInvite}>Copy invite link</button>
+              <button onClick={() => { leaveParty(); setPartyCode(null); setPartyPeers(1); setMenu(null); onToast('Left the party') }}>Leave party</button>
+            </>
+          ) : (
+            <>
+              <div className="party-join">
+                <input value={partyInput} maxLength={4} placeholder="CODE" aria-label="Party code"
+                  onChange={(e) => setPartyInput(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 4))} />
+                <button disabled={partyInput.trim().length < 4} onClick={() => partyStart(partyInput)}>Join</button>
+              </div>
+              <button onClick={() => partyStart(makeRoomCode())}>Start a party (host)</button>
+              <p className="party-note">Syncs play / pause / seek / episode across tabs of this browser.</p>
+            </>
+          )}
         </div>
       )}
 
@@ -413,6 +523,15 @@ export default function Player ({ showId, epIdx = 0, startAt = 0, onClose, onToa
                 <svg viewBox="0 0 24 24"><path fill="currentColor" d="M19 7h-8v6h8V7zm2-4H3a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h18a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2zm0 16H3V5h18v14z"/></svg>
               </button>
             )}
+            {real && (castAvail || casting) && (
+              <button className={casting ? 'sel' : ''} onClick={cast} aria-label="Cast to TV">
+                <svg viewBox="0 0 24 24"><path fill="currentColor" d="M21 3H3a2 2 0 0 0-2 2v3h2V5h18v14h-7v2h7a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2zM1 18v3h3a3 3 0 0 0-3-3zm0-4v2a5 5 0 0 1 5 5h2a7 7 0 0 0-7-7zm0-4v2a9 9 0 0 1 9 9h2A11 11 0 0 0 1 10z"/></svg>
+              </button>
+            )}
+            <button className={partyCode ? 'sel' : ''} aria-label="Watch Party"
+              onClick={() => setMenu(menu === 'party' ? null : 'party')}>
+              <svg viewBox="0 0 24 24"><path fill="currentColor" d="M16 11a3 3 0 1 0-3-3 3 3 0 0 0 3 3zm-8 0a3 3 0 1 0-3-3 3 3 0 0 0 3 3zm0 2c-2.3 0-7 1.2-7 3.5V19h9v-2.5c0-.8.2-1.6.6-2.3A11.4 11.4 0 0 0 8 13zm8 0c-.3 0-.7 0-1 .1a4 4 0 0 1 1 3.4V19h6v-2.5c0-2.3-3.7-3.5-6-3.5z"/></svg>
+            </button>
           </div>
         </div>
       </div>

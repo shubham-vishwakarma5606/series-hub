@@ -2,9 +2,10 @@ import Logo from './Logo.jsx'
 
 // Procedural "poster art" card: palette gradient + pattern + display title,
 // with a Netflix-style expanding hover panel (actions, match, genres).
-export default function Card ({ show, variant = 'land', onOpen, onPlay, inList, onToggleList, onRemind, reminded }) {
+export default function Card ({ show, variant = 'land', onOpen, onPlay, inList, onToggleList, onRemind, reminded, onLike, liked }) {
   const artStyle = { '--c1': show.palette[0], '--c2': show.palette[1] }
   const newBadge = !show.comingSoon && show.year === 2026 && show.type === 'series'
+  const lk = typeof liked === 'function' ? liked(show) : !!liked
 
   return (
     <div
@@ -58,7 +59,8 @@ export default function Card ({ show, variant = 'land', onOpen, onPlay, inList, 
                   ? <svg viewBox="0 0 24 24"><path fill="currentColor" d="M9 16.2 4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4z"/></svg>
                   : <svg viewBox="0 0 24 24"><path fill="currentColor" d="M11 5h2v6h6v2h-6v6h-2v-6H5v-2h6V5z"/></svg>}
               </button>
-              <button className="cbd" aria-label="I like this" onClick={(e) => e.stopPropagation()}>
+              <button className={`cbd${lk ? ' ok' : ''}`} aria-label="I like this"
+                onClick={(e) => { e.stopPropagation(); onLike?.(show) }}>
                 <svg viewBox="0 0 24 24"><path fill="currentColor" d="M2 20h2V9H2v11zm20-9a2 2 0 0 0-2-2h-6.3l.95-4.57.03-.32a1.5 1.5 0 0 0-.44-1.06L13.17 2 6.59 8.59A2 2 0 0 0 6 10v9a2 2 0 0 0 2 2h7.8a2 2 0 0 0 1.84-1.23l3-7.09c.1-.22.16-.46.16-.68v-1z"/></svg>
               </button>
             </>
