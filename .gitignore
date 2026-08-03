@@ -8,3 +8,16 @@ dist-ssr
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+
+# keep large media out of git — host licensed video yourself
+public/videos/*.mp4
+public/videos/*.mkv
+public/videos/*.webm
+public/videos/*.mov
+public/videos/*.m3u8
+public/videos/**/*.mp4
+public/videos/**/*.mkv
+public/videos/**/*.webm
+public/videos/**/*.m3u8
+public/videos/**/*.mov
+public/videos/**/*.ts

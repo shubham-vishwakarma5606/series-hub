@@ -37,6 +37,7 @@ const cases = {
   ModalFilm: <Modal showId="vermillion" onClose={noop} onPlay={noop} hasInList={() => false}
             onToggleList={noop} onPick={noop} onToast={noop} />,
   Player: <Player showId="iron-harbor" epIdx={0} onClose={noop} onToast={noop} />,
+  PlayerReal: <Player showId="big-buck-bunny" epIdx={0} onClose={noop} onToast={noop} />,
   SearchPage: <SearchPage query="neon" onQuery={noop} handlers={handlers} />,
   SearchEmpty: <SearchPage query="zzz nothing" onQuery={noop} handlers={handlers} />,
   SearchBlank: <SearchPage query="" onQuery={noop} handlers={handlers} />,

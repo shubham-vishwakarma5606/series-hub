@@ -210,6 +210,26 @@ const RAW = [
     tags: ['murder mystery party', 'satire', 'ensemble'],
     syn: 'A murder-mystery weekend goes wrong when the host actually dies — during the icebreaker.' },
 
+    // ── Playable now — open-license films (CC-BY Blender Foundation) ──────────
+  // These titles carry `videoUrl`, so the player plays REAL video. Point any
+  // fictional title at your own licensed MP4/WebM (videoUrl / episodeVideos)
+  // or HLS .m3u8 stream to make it playable too.
+  { id: 'big-buck-bunny', title: 'Big Buck Bunny', type: 'film', year: 2008, age: 'TV-PG', durMin: 10,
+    genres: ['Animation', 'Comedy', 'Family'], palette: ['#0c2410', '#4d8f2a'], pattern: 'rays', font: 'bebas',
+    videoUrl: 'https://cdn.theoplayer.com/video/big_buck_bunny/big_buck_bunny.m3u8',
+    tags: ['open movie', 'short', 'forest', 'rabbit', 'CC-BY Blender Foundation'],
+    syn: 'A gentle giant of a rabbit wakes to a beautiful spring day — then declares cartoon war on three bullying rodents. (© Blender Foundation, CC-BY 3.0 — open movie.)' },
+  { id: 'tears-of-steel', title: 'Tears of Steel', type: 'film', year: 2012, age: 'TV-14', durMin: 12,
+    genres: ['Sci-Fi', 'Live Action', 'VFX'], palette: ['#0a0f1c', '#35538a'], pattern: 'grid', font: 'mono',
+    videoUrl: 'https://demo.unified-streaming.com/k8s/features/stable/video/tears-of-steel/tears-of-steel.ism/.m3u8',
+    tags: ['open movie', 'amsterdam', 'robots', 'apocalypse', 'CC-BY Blender Foundation'],
+    syn: 'Forty years after a breakup under a bridge in Amsterdam, a group of scientists uses memory itself to weaponize the past against a robot apocalypse. (© Blender Foundation, CC-BY 3.0.)' },
+  { id: 'elephants-dream', title: 'Elephants Dream', type: 'film', year: 2006, age: 'TV-PG', durMin: 11,
+    genres: ['Animation', 'Sci-Fi', 'Short'], palette: ['#160826', '#8a3dc7'], pattern: 'fold', font: 'serif',
+    videoUrl: 'https://cdn.theoplayer.com/video/elephants-dream/playlist.m3u8',
+    tags: ['open movie', 'machine', 'surreal', 'CC-BY Blender Foundation'],
+    syn: 'Two travelers ride an infinite, malfunctioning machine-world and disagree about what it is. The very first Blender open movie. (© Blender Foundation, CC-BY 3.0 — subtitles & multi-audio included.)' },
+
   // ── Coming soon ─────────────────────────────────────────────────────────────
   { id: 'red-horizon', title: 'Red Horizon', type: 'series', year: 2027, age: 'TV-MA', seasons: 1,
     comingSoon: 'November', palette: ['#170607', '#e50914'], pattern: 'ember', font: 'bebas',
@@ -307,6 +327,8 @@ export const ROWS = {
   home: [
     { key: 'trending', title: 'Trending Now', variant: 'land',
       items: S(['neon-district', 'hollow-point', 'group-chat', 'the-long-dark', 'crimson-passport', 'static', 'marrow-deep', 'the-interns', 'vermillion', 'blackout-avenue', 'night-ferry', 'kingdom-of-ash']) },
+    { key: 'playnow', title: 'Playable Now · Free & Open Cinema (real streams)', variant: 'land',
+      items: S(['big-buck-bunny', 'tears-of-steel', 'elephants-dream']) },
     { key: 'originals', title: 'Only on Series Hub', variant: 'original',
       items: S(['neon-district', 'iron-harbor', 'the-long-dark', 'glasshouse', 'bone-orchard', 'saltline', 'midnight-circuit', 'the-undertow', 'vigil-9', 'kingdom-of-ash']) },
     { key: 'top10', title: 'Top 10 on Series Hub Today', variant: 'top10',
@@ -343,6 +365,8 @@ export const ROWS = {
   films: [
     { key: 'fm-trend', title: 'Trending Films', variant: 'land',
       items: films(['hollow-point', 'crimson-passport', 'vermillion', 'night-ferry', 'silent-run', 'brine-world', 'glass-road', 'cold-open']) },
+    { key: 'fm-play', title: 'Playable Now · Free & Open Cinema (real streams)', variant: 'land',
+      items: S(['big-buck-bunny', 'tears-of-steel', 'elephants-dream']) },
     { key: 'fm-action', title: 'Action & Thriller Films', variant: 'land',
       items: films(['hollow-point', 'crimson-passport', 'silent-run', 'night-ferry', 'glass-road']) },
     { key: 'fm-drama', title: 'Critically Acclaimed Dramas', variant: 'land',

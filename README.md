@@ -32,9 +32,13 @@ A fully client-side, Netflix-style OTT streaming experience — rebuilt with a *
 - Backdrop hero, metadata column, cast/creator/genres, maturity row
 - Tabs: **Episodes** (season selector, thumbnails, hover play), **More Like This** (switch titles instantly), **Trailers & More**
 
-### ▶️ Player
-- Simulated cinematic player: ken-burns footage, rotating light beams, film grain, pause-dimmer
-- Auto-hiding chrome, seek bar with red knob + buffered track, ±10s, volume, subtitles/quality menus, **Next Episode**, episode drawer, ended state with Watch Again — plus keyboard shortcuts (`Space` / `←` `→` / `Esc`)
+### ▶️ Player — real video playback
+- Plays **actual video** (MP4 / WebM / HLS `.m3u8` via hls.js) from any source you are licensed to host — your files, your CDN, or open-license/public-domain streams
+- Ships with a **“Playable Now · Free & Open Cinema”** row wired to verified-live, legally streamable Blender Foundation open movies (Big Buck Bunny, Tears of Steel, Elephants Dream — CC-BY 3.0) so Play genuinely works out of the box
+- Titles without a source fall back to a marked **simulated preview** (ken-burns footage, rotating light beams, film grain)
+- Auto-hiding chrome, seek bar with red knob + buffered track, ±10s, volume, subtitles/quality, **Next Episode**, episode drawer, ended state with Watch Again — plus keyboard shortcuts (`Space` / `←` `→` / `Esc`)
+- **Make any title playable**: set `videoUrl` (films) or `episodeVideos: [...]` (series) in `src/data/catalog.js` — see `public/videos/README.txt`. Remote URLs and `.m3u8` streams work; HLS requires CORS-enabled hosting.
+- Note: this project does **not** and will not integrate pirated embed providers. Use licensed or open-content sources only.
 
 ### 📌 My List + Reminders + Toasts
 - Add/remove titles from card hovers, modal and "More Like This" — persisted in `localStorage`

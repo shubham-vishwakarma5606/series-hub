@@ -13,6 +13,11 @@ for (const s of SHOWS) {
   if (!s.title || !s.syn || !s.genres?.length) bad(`${s.id} missing fields`)
   if (s.type === 'series' && (!Array.isArray(s.episodes) || s.episodes.length < 4)) bad(`${s.id} episodes missing`)
   if (s.type === 'film' && !s.durMin) bad(`${s.id} film without duration`)
+  if (s.videoUrl !== undefined && typeof s.videoUrl !== 'string') bad(`${s.id} videoUrl must be a string`)
+  if (s.episodeVideos !== undefined && (!Array.isArray(s.episodeVideos) || s.episodeVideos.some((u) => typeof u !== 'string'))) {
+    bad(`${s.id} episodeVideos must be an array of url strings`)
+  }
+  if (s.backdrop && !s.backdrop.startsWith('/backdrops/')) bad(`${s.id} backdrop path looks wrong`)
 }
 
 // rows reference real ids, non-empty, no dupes inside a row
