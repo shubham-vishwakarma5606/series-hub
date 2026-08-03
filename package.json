@@ -1,0 +1,22 @@
+{
+  "name": "series-hub",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Series Hub — a Netflix-style OTT streaming experience (blue / black / red)",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview --host",
+    "check:data": "node scripts/validate-data.mjs",
+    "check:ssr": "vite build --ssr scripts/ssr-check.jsx --outDir dist-ssr --logLevel warn && node dist-ssr/ssr-check.js"
+  },
+  "dependencies": {
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.3.4",
+    "vite": "^5.4.11"
+  }
+}
