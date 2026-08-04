@@ -2,20 +2,22 @@
 // Series Hub catalogue — fictional titles, deterministic metadata.
 // ─────────────────────────────────────────────────────────────────────────────
 
+import { pub } from '../utils/pub.js'
+
 const RAW = [
   // ── Flagship originals (with AI cinematic backdrops) ────────────────────────
   { id: 'neon-district', title: 'Neon District', type: 'series', year: 2026, age: 'TV-MA', seasons: 3,
-    genres: ['Sci-Fi', 'Crime', 'Thriller'], original: true, backdrop: '/backdrops/neon-district.jpg',
+    genres: ['Sci-Fi', 'Crime', 'Thriller'], original: true, backdrop: pub('/backdrops/neon-district.jpg'),
     palette: ['#071a45', '#0e3aa0'], markers: { intro: [78, 168], recap: [12, 74] }, pattern: 'glow', font: 'bebas', rank: '#1 in TV Shows Today',
     tags: ['cyberpunk', 'detective', 'noir', 'rainy city', 'conspiracy'],
     syn: 'In a rain-drowned megacity where memories can be stolen, a washed-out detective hunts the one suspect who knows her own erased past — and every clue glows neon blue and red.' },
   { id: 'iron-harbor', title: 'Iron Harbor', type: 'series', year: 2025, age: 'TV-MA', seasons: 2,
-    genres: ['Crime', 'Drama', 'Mystery'], original: true, backdrop: '/backdrops/iron-harbor.jpg',
+    genres: ['Crime', 'Drama', 'Mystery'], original: true, backdrop: pub('/backdrops/iron-harbor.jpg'),
     palette: ['#0a1626', '#1e4a73'], markers: { intro: [96, 182] }, pattern: 'slash', font: 'oswald', rank: '#2 in TV Shows Today',
     tags: ['port city', 'smuggling', 'family', 'slow burn', 'fog'],
     syn: 'A grieving dockmaster inherits his brother’s shipping empire — and the ledger of debts, bribes and bodies that came with it. The fog at Iron Harbor keeps everyone’s secrets. Almost.' },
   { id: 'the-long-dark', title: 'The Long Dark', type: 'series', year: 2026, age: 'TV-14', seasons: 1,
-    genres: ['Sci-Fi', 'Mystery', 'Adventure'], original: true, backdrop: '/backdrops/the-long-dark.jpg',
+    genres: ['Sci-Fi', 'Mystery', 'Adventure'], original: true, backdrop: pub('/backdrops/the-long-dark.jpg'),
     palette: ['#04121f', '#10628a'], markers: { intro: [88, 160] }, pattern: 'rays', font: 'oswald', rank: '#3 in TV Shows Today',
     tags: ['arctic', 'survival', 'aurora', 'isolation', 'expedition'],
     syn: 'Sixty days of polar night. Twelve scientists. One distress call that should not exist. At Station Vardø, the dark is not empty — it is patient.' },

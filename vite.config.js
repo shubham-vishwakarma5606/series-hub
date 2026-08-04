@@ -33,6 +33,8 @@ const injectCsp = {
 
 export default defineConfig({
   plugins: [react(), injectCsp],
+  // sub-path deploys (GitHub Pages) set VITE_BASE — e.g. VITE_BASE=/series-hub/
+  base: process.env.VITE_BASE || '/',
   server: { host: true, port: 5173 },
   // preview runs behind a sandbox/proxy host — accept it (CSP still applies)
   preview: { host: true, port: 4173, allowedHosts: true }

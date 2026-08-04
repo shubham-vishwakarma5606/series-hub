@@ -4,7 +4,9 @@
 // code change: drop the signed APK into public/downloads/, flip `available`
 // to true, redeploy — the download button lights up automatically.
 
-export const APK_INFO_URL = '/downloads/android.json'
+import { pub } from './pub.js'
+
+export const APK_INFO_URL = pub('/downloads/android.json')
 
 export const APK_FALLBACK = {
   available: false,
@@ -13,7 +15,7 @@ export const APK_FALLBACK = {
   updated: '2026-08-04',
   minAndroid: '8.0',
   package: 'com.serieshub.app',
-  url: '/downloads/series-hub.apk',
+  url: pub('/downloads/series-hub.apk'),
   notes: 'Direct APK · also available as an installable web app (PWA) in any browser.'
 }
 
@@ -26,6 +28,7 @@ export async function fetchApkInfo () {
     const j = await r.json()
     const info = { ...APK_FALLBACK, ...j }
     if (typeof info.url !== 'string' || !isHttp(info.url)) info.url = APK_FALLBACK.url
+    else if (info.url.startsWith('/')) info.url = pub(info.url) // base-aware (GitHub Pages sub-path)
     info.available = Boolean(info.available && info.url)
     return info
   } catch {

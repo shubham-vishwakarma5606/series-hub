@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { fetchApkInfo, fmtBytes, APK_FALLBACK } from '../utils/appStore.js'
+import { pub } from '../utils/pub.js'
 
 // "Get the Android app" — the download hub of the site. Three surfaces:
 //   GetAppModal — APK download + PWA install + QR hand-off to phone
@@ -67,7 +68,7 @@ export function GetAppModal ({ onClose, installEvt, onInstall, onToast }) {
         </button>
         <div className="ga-body">
           <div className="ga-head">
-            <img className="ga-icon" src="/icons/icon-192.png" alt="Series Hub app icon" width="64" height="64" />
+            <img className="ga-icon" src={pub('/icons/icon-192.png')} alt="Series Hub app icon" width="64" height="64" />
             <div>
               <h2 className="ga-title">Series Hub for Android</h2>
               <span className={`ga-badge ${info.available ? 'ok' : 'soon'}`}>
@@ -144,7 +145,7 @@ export function AppBanner ({ onGetApp }) {
   }
   return (
     <div className="appbanner" role="region" aria-label="Series Hub Android app">
-      <img src="/icons/icon-192.png" alt="" width="40" height="40" />
+      <img src={pub('/icons/icon-192.png')} alt="" width="40" height="40" />
       <div className="ab-txt">
         <b>Series Hub — Android app</b>
         <i>One tap install · free</i>

@@ -5,7 +5,7 @@ const ART_CACHE = 'sh-art-v1'
 const FONT_CACHE = 'sh-font-v1'
 
 const isArtwork = (url) =>
-  url.pathname.startsWith('/backdrops/') ||
+  url.pathname.includes('/backdrops/') ||
   url.hostname === 'image.tmdb.org' ||
   url.hostname === 'img.youtube.com' ||
   url.hostname === 'i.ytimg.com'
