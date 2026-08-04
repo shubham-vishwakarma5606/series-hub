@@ -1174,8 +1174,18 @@ img { max-width: 100%; display: block; }
 .p-ctlrow button.sel { color: var(--blue-2); }
 
 @media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
+  *:not(.boot):not(.boot *):not(.boot-static):not(.boot-static *)::before,
+  *:not(.boot):not(.boot *):not(.boot-static):not(.boot-static *),
+  *:not(.boot):not(.boot *):not(.boot-static):not(.boot-static *)::after {
+    animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important;
+  }
   html { scroll-behavior: auto; }
+  /* Boot animation is essential branding and must remain visible even with reduced-motion */
+  .boot, .boot *, .boot-static, .boot-static * {
+    animation-duration: revert !important;
+    animation-iteration-count: revert !important;
+    transition-duration: revert !important;
+  }
 }
 
 /* ════════════════════════════════════════════════════════════════════════

@@ -22,12 +22,61 @@
     <style>
       html, body { background:#05060a; margin:0; min-height:100vh; }
       #root { min-height:100vh; background:#05060a; }
-      #root:empty::before {
-        content:'SERIES HUB — Loading…';
-        display:flex; align-items:center; justify-content:center;
-        min-height:100vh; color:#b3b3b3; font-family:Inter,Arial,sans-serif;
-        letter-spacing:.22em; font-size:.84rem;
+      /* Static boot splash — shows instantly before JS loads, guaranteeing landing on boot */
+      .boot-static {
+        position: fixed; inset: 0; z-index: 1000;
+        background: #000;
+        display: flex; align-items: center; justify-content: center;
+        overflow: hidden; font-family: 'Bebas Neue', 'Arial Narrow', sans-serif;
       }
+      .boot-static .boot-rays {
+        position: absolute; left: 50%; top: 50%;
+        width: 220vmax; height: 220vmax;
+        transform: translate(-50%, -50%);
+        background: repeating-conic-gradient(from 0deg,
+          transparent 0deg 13deg,
+          rgba(46, 147, 255, .13) 13deg 19deg,
+          transparent 19deg 34deg,
+          rgba(229, 9, 20, .11) 34deg 39deg,
+          transparent 39deg 58deg);
+        animation: kf-spin 26s linear infinite, kf-rays-in 1.6s .35s ease-out forwards;
+        -webkit-mask-image: radial-gradient(circle, #000 0%, transparent 62%);
+        mask-image: radial-gradient(circle, #000 0%, transparent 62%);
+        opacity: 0;
+      }
+      .boot-static .boot-logo {
+        position: relative; z-index: 3;
+        font-size: clamp(3.4rem, 14vw, 13rem);
+        letter-spacing: .05em; display: flex; align-items: baseline;
+        filter: drop-shadow(0 0 34px rgba(46, 147, 255, .22)) drop-shadow(0 6px 26px rgba(0, 0, 0, .8));
+      }
+      .boot-static .boot-logo .r {
+        background-image: linear-gradient(178deg, #ff4b55 6%, #e50914 55%, #8f040d 100%);
+        -webkit-background-clip: text; background-clip: text;
+        -webkit-text-fill-color: transparent; color: transparent;
+        display: inline-block; animation: kf-bletter .62s cubic-bezier(.16, .84, .3, 1.16) forwards;
+      }
+      .boot-static .boot-logo .b {
+        background-image: linear-gradient(178deg, #7cc0ff 6%, #2e93ff 55%, #0b3d91 100%);
+        -webkit-background-clip: text; background-clip: text;
+        -webkit-text-fill-color: transparent; color: transparent;
+        display: inline-block; animation: kf-bletter .62s cubic-bezier(.16, .84, .3, 1.16) forwards;
+      }
+      .boot-static .boot-logo .boot-gap { width: .32em; }
+      .boot-static .boot-tag {
+        position: absolute; z-index: 3;
+        top: calc(50% + clamp(2.6rem, 8vw, 7.4rem));
+        display: flex; gap: 1.1em; align-items: center;
+        font-family: Inter, Arial, sans-serif;
+        font-size: clamp(.62rem, 1.05vw, .95rem);
+        font-weight: 600; letter-spacing: .5em; color: #93a1b8;
+        opacity: 0; animation: kf-fade .9s 1.55s forwards;
+      }
+      .boot-static .boot-tag i { width: 4px; height: 4px; border-radius: 50%; background: #2e93ff; box-shadow: 0 0 8px #2e93ff; }
+      @keyframes kf-bletter { 0% { opacity: 0; transform: translateY(.32em) scale(2.4); filter: blur(14px); } 55% { opacity: 1; filter: blur(0); } 100% { opacity: 1; transform: none; filter: blur(0); } }
+      @keyframes kf-spin { to { transform: translate(-50%, -50%) rotate(360deg); } }
+      @keyframes kf-rays-in { to { opacity: 1; } }
+      @keyframes kf-fade { to { opacity: 1; } }
     </style>
   </head>
   <body>
@@ -36,7 +85,18 @@
         <div><h1 style="font-size:1.4rem;margin-bottom:.6rem">JavaScript required</h1><p style="color:#b3b3b3">Series Hub needs JavaScript to run. Please enable it in your browser settings.</p></div>
       </div>
     </noscript>
-    <div id="root"></div>
+    <div id="root">
+      <!-- Static boot splash: first paint is boot animation, before any JS -->
+      <div class="boot-static" aria-label="Series Hub boot">
+        <div class="boot-rays" aria-hidden="true"></div>
+        <div class="boot-logo" aria-label="Series Hub">
+          <span class="r" style="animation-delay:0ms">S</span><span class="r" style="animation-delay:60ms">E</span><span class="r" style="animation-delay:120ms">R</span><span class="r" style="animation-delay:180ms">I</span><span class="r" style="animation-delay:240ms">E</span><span class="r" style="animation-delay:300ms">S</span>
+          <span class="boot-gap" aria-hidden="true"></span>
+          <span class="b" style="animation-delay:0ms">H</span><span class="b" style="animation-delay:60ms">U</span><span class="b" style="animation-delay:120ms">B</span>
+        </div>
+        <div class="boot-tag"><span>SERIES</span><i></i><span>FILMS</span><i></i><span>UNLIMITED</span></div>
+      </div>
+    </div>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>
