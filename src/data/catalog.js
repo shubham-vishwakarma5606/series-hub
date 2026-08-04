@@ -278,7 +278,8 @@ function readCustomRaw () {
         tags: Array.isArray(j.tags) ? j.tags.map(String) : ['licensed', 'uploaded'],
         syn: String(j.syn || j.description || `${j.title} — from your licensed library.`),
         videoUrl: typeof j.videoUrl === 'string' && j.videoUrl ? j.videoUrl : undefined,
-        episodeVideos: Array.isArray(j.episodeVideos) ? j.episodeVideos.filter((u) => typeof u === 'string' && u) : undefined
+        episodeVideos: Array.isArray(j.episodeVideos) ? j.episodeVideos.filter((u) => typeof u === 'string' && u) : undefined,
+        backdrop: typeof j.backdrop === 'string' && j.backdrop ? j.backdrop : undefined
       }))
   } catch { return [] }
 }

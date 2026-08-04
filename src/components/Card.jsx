@@ -17,6 +17,9 @@ export default function Card ({ show, variant = 'land', onOpen, onPlay, inList, 
       onKeyDown={(e) => { if (e.key === 'Enter') onOpen(show) }}
     >
       <div className="card-art" style={artStyle}>
+        {show.backdrop && (
+          <img className="art-img" src={show.backdrop} alt={show.title} loading="lazy" />
+        )}
         {variant === 'original' && <span className="art-ribbon"><Logo compact /></span>}
         <span className="art-fx" aria-hidden="true" />
         <span className="art-kicker">{show.original ? 'A Series Hub Original' : show.genres[0]}</span>

@@ -46,6 +46,7 @@ export function validateLibraryJSON (text) {
     if (j.episodeVideos && (!Array.isArray(j.episodeVideos) || j.episodeVideos.some((u) => !isUrl(u)))) {
       errors.push(`${at}: "episodeVideos" must be an array of stream URLs`); return
     }
+    if (j.backdrop && !/^(https?:\/\/|\/backdrops\/)/i.test(j.backdrop)) { errors.push(`${at}: "backdrop" must start with http(s):// or /backdrops/`); return }
     if (!j.videoUrl && !j.episodeVideos) { errors.push(`${at}: no stream configured — it will show a simulated preview (that's fine, just a heads-up)`); }
     ok.push(j)
   })

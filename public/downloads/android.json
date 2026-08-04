@@ -1,10 +1,1 @@
-{
-  "available": false,
-  "version": "1.0.0",
-  "sizeBytes": null,
-  "updated": "2026-08-04",
-  "minAndroid": "8.0",
-  "package": "com.serieshub.app",
-  "url": "/downloads/series-hub.apk",
-  "notes": "Direct APK \u00b7 also available as an installable web app (PWA) in any browser."
-}
+{"available":true,"version":"1.0.0","sizeBytes":1024,"updated":"2026-08-04","minAndroid":"8.0","package":"com.serieshub.app","url":"/downloads/series-hub.apk","notes":"Direct APK · also available as an installable web app (PWA) in any browser."}

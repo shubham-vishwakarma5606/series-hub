@@ -1,0 +1,442 @@
+{
+  "neon-district": [
+    "midnight-circuit",
+    "vigil-9",
+    "zero-kelvin",
+    "red-horizon",
+    "glasshouse",
+    "calling-hours"
+  ],
+  "iron-harbor": [
+    "stringer",
+    "saltline",
+    "bone-orchard",
+    "the-gallery",
+    "glasshouse",
+    "midnight-circuit"
+  ],
+  "the-long-dark": [
+    "orion-falls",
+    "static",
+    "neon-district",
+    "the-pale-cart",
+    "vigil-9",
+    "zero-kelvin"
+  ],
+  "glasshouse": [
+    "calling-hours",
+    "the-undertow",
+    "midnight-circuit",
+    "neon-district",
+    "vigil-9",
+    "zero-kelvin"
+  ],
+  "bone-orchard": [
+    "iron-harbor",
+    "stringer",
+    "glasshouse",
+    "midnight-circuit",
+    "calling-hours",
+    "red-line-pd"
+  ],
+  "saltline": [
+    "iron-harbor",
+    "the-gallery",
+    "glasshouse",
+    "calling-hours",
+    "orion-falls",
+    "the-pale-cart"
+  ],
+  "midnight-circuit": [
+    "red-line-pd",
+    "neon-district",
+    "blackout-avenue",
+    "glasshouse",
+    "calling-hours",
+    "vigil-9"
+  ],
+  "the-undertow": [
+    "glasshouse",
+    "calling-hours",
+    "midnight-circuit",
+    "neon-district",
+    "vigil-9",
+    "zero-kelvin"
+  ],
+  "vigil-9": [
+    "neon-district",
+    "zero-kelvin",
+    "red-horizon",
+    "glasshouse",
+    "midnight-circuit",
+    "calling-hours"
+  ],
+  "kingdom-of-ash": [
+    "glasshouse",
+    "calling-hours",
+    "the-pale-cart",
+    "iron-harbor",
+    "the-last-cartographer",
+    "stringer"
+  ],
+  "static": [
+    "orion-falls",
+    "the-long-dark",
+    "moth-house",
+    "neon-district",
+    "the-pale-cart",
+    "vigil-9"
+  ],
+  "paper-straits": [
+    "glasshouse",
+    "calling-hours",
+    "uncle-finance",
+    "iron-harbor",
+    "the-last-cartographer",
+    "stringer"
+  ],
+  "amber-line": [
+    "glasshouse",
+    "calling-hours",
+    "iron-harbor",
+    "the-last-cartographer",
+    "stringer",
+    "verdict"
+  ],
+  "the-last-cartographer": [
+    "drift-state",
+    "glasshouse",
+    "calling-hours",
+    "iron-harbor",
+    "stringer",
+    "verdict"
+  ],
+  "calling-hours": [
+    "glasshouse",
+    "the-undertow",
+    "midnight-circuit",
+    "neon-district",
+    "vigil-9",
+    "zero-kelvin"
+  ],
+  "the-gallery": [
+    "iron-harbor",
+    "saltline",
+    "glasshouse",
+    "calling-hours",
+    "orion-falls",
+    "the-pale-cart"
+  ],
+  "stringer": [
+    "iron-harbor",
+    "bone-orchard",
+    "glasshouse",
+    "midnight-circuit",
+    "calling-hours",
+    "red-line-pd"
+  ],
+  "verdict": [
+    "glasshouse",
+    "calling-hours",
+    "iron-harbor",
+    "the-last-cartographer",
+    "stringer",
+    "the-undertow"
+  ],
+  "group-chat": [
+    "flatmates",
+    "uncle-finance",
+    "the-interns",
+    "punchline-lane",
+    "low-stakes",
+    "brunch-club"
+  ],
+  "the-interns": [
+    "uncle-finance",
+    "punchline-lane",
+    "low-stakes",
+    "group-chat",
+    "flatmates",
+    "brunch-club"
+  ],
+  "flatmates": [
+    "group-chat",
+    "uncle-finance",
+    "the-interns",
+    "punchline-lane",
+    "low-stakes",
+    "brunch-club"
+  ],
+  "uncle-finance": [
+    "the-interns",
+    "punchline-lane",
+    "low-stakes",
+    "paper-straits",
+    "group-chat",
+    "flatmates"
+  ],
+  "brunch-club": [
+    "glasshouse",
+    "calling-hours",
+    "uncle-finance",
+    "the-interns",
+    "punchline-lane",
+    "low-stakes"
+  ],
+  "punchline-lane": [
+    "uncle-finance",
+    "the-interns",
+    "low-stakes",
+    "group-chat",
+    "flatmates",
+    "brunch-club"
+  ],
+  "low-stakes": [
+    "uncle-finance",
+    "the-interns",
+    "punchline-lane",
+    "group-chat",
+    "flatmates",
+    "brunch-club"
+  ],
+  "the-substitute-s": [
+    "uncle-finance",
+    "the-interns",
+    "punchline-lane",
+    "low-stakes",
+    "group-chat",
+    "flatmates"
+  ],
+  "blackout-avenue": [
+    "midnight-circuit",
+    "glasshouse",
+    "calling-hours",
+    "red-line-pd",
+    "neon-district",
+    "vigil-9"
+  ],
+  "zero-kelvin": [
+    "neon-district",
+    "vigil-9",
+    "red-horizon",
+    "glasshouse",
+    "midnight-circuit",
+    "calling-hours"
+  ],
+  "orion-falls": [
+    "the-long-dark",
+    "static",
+    "neon-district",
+    "the-pale-cart",
+    "vigil-9",
+    "zero-kelvin"
+  ],
+  "the-signal-tide": [
+    "glasshouse",
+    "calling-hours",
+    "orion-falls",
+    "neon-district",
+    "vigil-9",
+    "zero-kelvin"
+  ],
+  "marrow-deep": [
+    "feast-of-june",
+    "dont-answer",
+    "the-welling",
+    "static",
+    "moth-house",
+    "glasshouse"
+  ],
+  "moth-house": [
+    "static",
+    "orion-falls",
+    "the-pale-cart",
+    "feast-of-june",
+    "iron-harbor",
+    "marrow-deep"
+  ],
+  "dont-answer": [
+    "glasshouse",
+    "midnight-circuit",
+    "calling-hours",
+    "neon-district",
+    "vigil-9",
+    "zero-kelvin"
+  ],
+  "the-welling": [
+    "glasshouse",
+    "calling-hours",
+    "feast-of-june",
+    "iron-harbor",
+    "the-last-cartographer",
+    "marrow-deep"
+  ],
+  "feast-of-june": [
+    "marrow-deep",
+    "dont-answer",
+    "the-welling",
+    "static",
+    "moth-house",
+    "glasshouse"
+  ],
+  "strike-vector": [
+    "midnight-circuit",
+    "red-line-pd",
+    "blackout-avenue",
+    "glasshouse",
+    "calling-hours",
+    "orion-falls"
+  ],
+  "red-line-pd": [
+    "midnight-circuit",
+    "neon-district",
+    "iron-harbor",
+    "stringer",
+    "bone-orchard",
+    "strike-vector"
+  ],
+  "hollow-point": [
+    "night-market",
+    "crimson-passport",
+    "silent-run",
+    "night-ferry",
+    "glass-road",
+    "the-escape-artist"
+  ],
+  "crimson-passport": [
+    "silent-run",
+    "hollow-point",
+    "night-market",
+    "glass-road",
+    "the-escape-artist",
+    "tears-of-steel"
+  ],
+  "vermillion": [
+    "low-winter-sun-f",
+    "glass-road",
+    "the-escape-artist",
+    "after-the-flood",
+    "night-market",
+    "crimson-passport"
+  ],
+  "silent-run": [
+    "crimson-passport",
+    "tears-of-steel",
+    "brine-world",
+    "hollow-point",
+    "elephants-dream",
+    "night-market"
+  ],
+  "night-ferry": [
+    "night-market",
+    "hollow-point",
+    "low-winter-sun-f",
+    "crimson-passport",
+    "glass-road",
+    "silent-run"
+  ],
+  "brine-world": [
+    "silent-run",
+    "tears-of-steel",
+    "elephants-dream",
+    "night-market",
+    "crimson-passport",
+    "glass-road"
+  ],
+  "after-the-flood": [
+    "glass-road",
+    "the-escape-artist",
+    "vermillion",
+    "low-winter-sun-f",
+    "night-market",
+    "crimson-passport"
+  ],
+  "glass-road": [
+    "the-escape-artist",
+    "vermillion",
+    "low-winter-sun-f",
+    "after-the-flood",
+    "night-market",
+    "crimson-passport"
+  ],
+  "the-escape-artist": [
+    "glass-road",
+    "big-buck-bunny",
+    "vermillion",
+    "low-winter-sun-f",
+    "after-the-flood",
+    "cold-open"
+  ],
+  "low-winter-sun-f": [
+    "vermillion",
+    "glass-road",
+    "the-escape-artist",
+    "night-ferry",
+    "after-the-flood",
+    "night-market"
+  ],
+  "cold-open": [
+    "the-escape-artist",
+    "big-buck-bunny",
+    "night-market",
+    "crimson-passport",
+    "glass-road",
+    "silent-run"
+  ],
+  "big-buck-bunny": [
+    "the-escape-artist",
+    "elephants-dream",
+    "cold-open",
+    "night-market",
+    "crimson-passport",
+    "glass-road"
+  ],
+  "tears-of-steel": [
+    "silent-run",
+    "brine-world",
+    "elephants-dream",
+    "night-market",
+    "crimson-passport",
+    "glass-road"
+  ],
+  "elephants-dream": [
+    "silent-run",
+    "tears-of-steel",
+    "big-buck-bunny",
+    "brine-world",
+    "night-market",
+    "crimson-passport"
+  ],
+  "red-horizon": [
+    "neon-district",
+    "vigil-9",
+    "zero-kelvin",
+    "glasshouse",
+    "midnight-circuit",
+    "calling-hours"
+  ],
+  "drift-state": [
+    "the-last-cartographer",
+    "glasshouse",
+    "calling-hours",
+    "iron-harbor",
+    "stringer",
+    "verdict"
+  ],
+  "night-market": [
+    "hollow-point",
+    "night-ferry",
+    "crimson-passport",
+    "glass-road",
+    "silent-run",
+    "the-escape-artist"
+  ],
+  "the-pale-cart": [
+    "orion-falls",
+    "iron-harbor",
+    "saltline",
+    "kingdom-of-ash",
+    "the-gallery",
+    "the-long-dark"
+  ]
+}
