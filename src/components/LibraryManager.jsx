@@ -15,7 +15,7 @@ export default function LibraryManager ({ existingCount, onClose, onSaved, onToa
     const r = report || validateLibraryJSON(text)
     if (!r.ok.length) { setReport(r); onToast('Nothing valid to save yet'); return }
     try {
-      localStorage.setItem('sh.custom', JSON.stringify(r.ok))
+      if (typeof window !== 'undefined') window.localStorage?.setItem('sh.custom', JSON.stringify(r.ok))
       onToast(r.errors.length
         ? `Saved ${r.ok.length} title(s) — skipped ${r.errors.length} invalid. Reloading…`
         : `Saved ${r.ok.length} title(s). Reloading…`)
@@ -27,7 +27,7 @@ export default function LibraryManager ({ existingCount, onClose, onSaved, onToa
   }
 
   const clearAll = () => {
-    try { localStorage.removeItem('sh.custom') } catch {}
+    try { if (typeof window !== 'undefined') window.localStorage?.removeItem('sh.custom') } catch {}
     onToast('Uploads removed. Reloading…')
     setTimeout(() => window.location.reload(), 1100)
   }

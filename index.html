@@ -19,8 +19,23 @@
       href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700;800&family=Oswald:wght@500;600;700&display=swap"
       rel="stylesheet"
     />
+    <style>
+      html, body { background:#05060a; margin:0; min-height:100vh; }
+      #root { min-height:100vh; background:#05060a; }
+      #root:empty::before {
+        content:'SERIES HUB — Loading…';
+        display:flex; align-items:center; justify-content:center;
+        min-height:100vh; color:#b3b3b3; font-family:Inter,Arial,sans-serif;
+        letter-spacing:.22em; font-size:.84rem;
+      }
+    </style>
   </head>
   <body>
+    <noscript>
+      <div style="min-height:100vh;display:flex;align-items:center;justify-content:center;background:#05060a;color:#fff;font-family:Inter,sans-serif;padding:2rem;text-align:center">
+        <div><h1 style="font-size:1.4rem;margin-bottom:.6rem">JavaScript required</h1><p style="color:#b3b3b3">Series Hub needs JavaScript to run. Please enable it in your browser settings.</p></div>
+      </div>
+    </noscript>
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
   </body>

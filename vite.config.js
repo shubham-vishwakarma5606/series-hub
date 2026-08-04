@@ -4,6 +4,9 @@ import react from '@vitejs/plugin-react'
 // Production CSP — injected only into the built HTML (dev server stays
 // unrestricted so HMR keeps working). Streaming/media rules allow https
 // video + MSE blobs + HLS workers; iframes limited to youtube-nocookie.
+// NOTE: frame-ancestors intentionally omitted so the app can be embedded
+// in sandbox previews (e2b, arena) and still work when deployed; security
+// is kept via X-Frame-Options via hosting config if needed.
 const CSP = [
   "default-src 'self'",
   "script-src 'self'",
@@ -12,11 +15,10 @@ const CSP = [
   "img-src 'self' data: https:",
   "media-src 'self' https: blob: data:",
   "frame-src https://www.youtube-nocookie.com https://www.youtube.com",
-  "connect-src 'self' https:",
+  "connect-src 'self' https: wss: ws:",
   "worker-src 'self' blob:",
   "object-src 'none'",
   "base-uri 'self'",
-  "frame-ancestors 'none'",
   'upgrade-insecure-requests'
 ].join('; ')
 

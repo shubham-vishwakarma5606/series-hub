@@ -28,8 +28,33 @@ import {
   SYNC_KEYS, collectLocalSyncPayload, pullCloud, pushCloud
 } from './utils/supabase.js'
 
+const safeLS = {
+  get(k) {
+    try {
+      if (typeof window === 'undefined') return null
+      return window.localStorage?.getItem(k) ?? null
+    } catch { return null }
+  },
+  set(k, v) {
+    try {
+      if (typeof window === 'undefined') return
+      window.localStorage?.setItem(k, v)
+    } catch {}
+  },
+  remove(k) {
+    try {
+      if (typeof window === 'undefined') return
+      window.localStorage?.removeItem(k)
+    } catch {}
+  }
+}
 const read = (k, fb) => {
-  try { const v = JSON.parse(localStorage.getItem(k)); return v ?? fb } catch { return fb }
+  try {
+    const raw = safeLS.get(k)
+    if (raw == null) return fb
+    const v = JSON.parse(raw)
+    return v ?? fb
+  } catch { return fb }
 }
 
 const KEEP_RORDER = ['top10', 'originals', 'continue', 'playnow', 'custom', 'byw']
@@ -75,21 +100,26 @@ export default function App () {
   }, [])
 
   const persist = (k, set) => {
-    try { localStorage.setItem(k, JSON.stringify([...set])) } catch {}
+    safeLS.set(k, JSON.stringify([...set]))
   }
 
   // ── profile / kids helpers ────────────────────────────────────────────────
-  const storedPin = () => { try { return JSON.parse(localStorage.getItem('sh.pin')) } catch { return null } }
+  const storedPin = () => {
+    try {
+      const raw = safeLS.get('sh.pin')
+      return raw ? JSON.parse(raw) : null
+    } catch { return null }
+  }
   const allowed = useCallback((s) => !profile?.kids || kidsAllowed(s), [profile])
 
   const pickProfile = (p) => {
     setProfile(p)
-    try { localStorage.setItem('sh.profile', JSON.stringify(p)) } catch {}
+    safeLS.set('sh.profile', JSON.stringify(p))
     setScreen('app')
   }
 
   const switchProfile = () => {
-    try { localStorage.removeItem('sh.profile') } catch {}
+    safeLS.remove('sh.profile')
     setProfile(PROFILES[0])
     setScreen('profiles')
   }
@@ -127,7 +157,7 @@ export default function App () {
     const on = !likes[show.id]
     setLikes((prev) => {
       const next = { ...prev, [show.id]: on ? 1 : 0 }
-      if (allowTaste) { try { localStorage.setItem('sh.likes', JSON.stringify(next)) } catch {} }
+      if (allowTaste) safeLS.set('sh.likes', JSON.stringify(next))
       return next
     })
     say(on
@@ -156,7 +186,7 @@ export default function App () {
       const next = { ...prev }
       if (pct >= 0.97) delete next[key]
       else if (rec.t > 25) next[key] = rec
-      try { localStorage.setItem('sh.progress', JSON.stringify(next)) } catch {}
+      safeLS.set('sh.progress', JSON.stringify(next))
       return next
     })
   }, [])
@@ -309,7 +339,7 @@ export default function App () {
       }
       fromCloud.current = true
       const p = r.payload || {}
-      for (const k of SYNC_KEYS) if (p[k] != null) { try { localStorage.setItem(k, JSON.stringify(p[k])) } catch {} }
+      for (const k of SYNC_KEYS) if (p[k] != null) { safeLS.set(k, JSON.stringify(p[k])) }
       setMyList(new Set(p['sh.mylist'] || []))
       setReminded(new Set(p['sh.remind'] || []))
       setLikes(p['sh.likes'] || {})
@@ -348,12 +378,12 @@ export default function App () {
   const onPinDone = async (result) => {
     if (pinAsk === 'exit') {
       if (result?.upgraded) {
-        try { localStorage.setItem('sh.pin', JSON.stringify(result.upgraded)) } catch {}
+        safeLS.set('sh.pin', JSON.stringify(result.upgraded))
       }
       switchProfile()
     } else if (pinAsk === 'setup' && result?.pin) {
       const rec = await hashPin(result.pin)
-      try { localStorage.setItem('sh.pin', JSON.stringify(rec)) } catch {}
+      safeLS.set('sh.pin', JSON.stringify(rec))
       say('Kids profile lock PIN saved')
     }
     setPinAsk(null)
