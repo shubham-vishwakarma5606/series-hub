@@ -1,15 +1,18 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import Logo from './Logo.jsx'
+import { verifyPin } from '../utils/pin.js'
 
 // 4-digit PIN pad — used to lock/unlock the Kids profile and to set/change
 // the household PIN. mode: 'verify' (enter current) | 'setup' (verify current
-// if one exists, then choose new twice).
+// if one exists, then choose new twice). PINs are verified against the hashed
+// stored record (utils/pin.js), never compared in plaintext.
 export default function KidsPin ({ mode, expected, title, subtitle, onClose, onDone }) {
   const wantsCurrentFirst = mode === 'setup' && Boolean(expected)
   const [stage, setStage] = useState(mode === 'verify' ? 'enter' : wantsCurrentFirst ? 'current' : 'new')
   const [pin, setPin] = useState('')
   const [first, setFirst] = useState('')
   const [err, setErr] = useState('')
+  const busy = useRef(false)
 
   const TITLES = {
     enter: title || 'Enter your PIN',
@@ -24,19 +27,26 @@ export default function KidsPin ({ mode, expected, title, subtitle, onClose, onD
     setTimeout(() => setErr(''), 2200)
   }
 
-  const submit = (value) => {
-    if (stage === 'enter' || stage === 'current') {
-      if (value === expected) {
-        if (stage === 'enter') onDone?.(value)
-        else { setStage('new'); setPin('') }
-      } else flash('Wrong PIN. Try again.')
-    } else if (stage === 'new') {
-      setFirst(value)
-      setPin('')
-      setStage('confirm')
-    } else if (stage === 'confirm') {
-      if (value === first) onDone?.(value)
-      else { flash('PINs didn’t match. Start over.'); setFirst(''); setStage('new') }
+  const submit = async (value) => {
+    if (busy.current) return
+    busy.current = true
+    try {
+      if (stage === 'enter' || stage === 'current') {
+        const r = await verifyPin(value, expected || '')
+        if (r.ok) {
+          if (stage === 'enter') onDone?.({ pin: value, upgraded: r.upgraded || null })
+          else { setStage('new'); setPin('') }
+        } else flash('Wrong PIN. Try again.')
+      } else if (stage === 'new') {
+        setFirst(value)
+        setPin('')
+        setStage('confirm')
+      } else if (stage === 'confirm') {
+        if (value === first) onDone?.({ pin: value })
+        else { flash('PINs didn’t match. Start over.'); setFirst(''); setStage('new') }
+      }
+    } finally {
+      busy.current = false
     }
   }
 

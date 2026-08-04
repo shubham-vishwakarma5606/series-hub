@@ -9,14 +9,19 @@
     "build": "vite build",
     "preview": "vite preview --host",
     "check:data": "node scripts/validate-data.mjs",
-    "check:ssr": "vite build --ssr scripts/ssr-check.jsx --outDir dist-ssr --logLevel warn && node dist-ssr/ssr-check.js"
+    "check:ssr": "vite build --ssr scripts/ssr-check.jsx --outDir dist-ssr --logLevel warn && node dist-ssr/ssr-check.js",
+    "cap:sync": "npm run build && npx cap sync",
+    "cap:android": "npx cap add android && npx cap sync",
+    "cap:ios": "npx cap add ios && npx cap sync"
   },
   "dependencies": {
+    "@capacitor/core": "^8.5.0",
     "hls.js": "^1.6.16",
     "react": "^18.3.1",
     "react-dom": "^18.3.1"
   },
   "devDependencies": {
+    "@capacitor/cli": "^8.5.0",
     "@vitejs/plugin-react": "^4.3.4",
     "vite": "^5.4.11"
   }

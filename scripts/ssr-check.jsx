@@ -17,6 +17,7 @@ import TmdbShelves from '../src/components/TmdbShelf.jsx'
 import TmdbModal from '../src/components/TmdbModal.jsx'
 import KidsPin from '../src/components/KidsPin.jsx'
 import LibraryManager from '../src/components/LibraryManager.jsx'
+import MobileNav from '../src/components/MobileNav.jsx'
 import { ROWS, FEATURED, byId } from '../src/data/catalog.js'
 
 const noop = () => {}
@@ -44,8 +45,9 @@ const cases = {
   PlayerReal: <Player showId="big-buck-bunny" epIdx={0} startAt={0} partyJoin={null} onClose={noop} onToast={noop} onProgress={noop} />,
   TmdbShelves: <TmdbShelves tab="home" onOpen={noop} />,        // renders null when no API key — expected
   TmdbModal: <TmdbModal sel={{ type: 'movie', id: 27205, trailer: false }} onClose={noop} onPick={noop} />,
-  KidsPin: <KidsPin mode="verify" expected="1234" title="Kids profile is locked" onClose={noop} onDone={noop} />,
+  KidsPin: <KidsPin mode="verify" expected={null} title="Kids profile is locked" onClose={noop} onDone={noop} />,
   LibraryManager: <LibraryManager existingCount={0} onClose={noop} onSaved={noop} onToast={noop} />,
+  MobileNav: <MobileNav tab="home" onTab={noop} searchOpen={false} onSearch={noop} />,
   SearchPage: <SearchPage query="neon" onQuery={noop} handlers={handlers} />,
   SearchEmpty: <SearchPage query="zzz nothing" onQuery={noop} handlers={handlers} />,
   SearchBlank: <SearchPage query="" onQuery={noop} handlers={handlers} />,

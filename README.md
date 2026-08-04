@@ -61,8 +61,29 @@ A fully client-side, Netflix-style OTT streaming experience — rebuilt with a *
 - 👍 on any card/modal feeds a genre taste-graph (likes × 2, list adds × 0.6, watch history × 0.5)
 - Home gets a **"Top Picks for {name}"** shelf and generic shelves reorder by your taste; Top 10 / Originals rows keep editorial order
 
-### 📲 PWA
-- Installable (manifest + generated icons, install menu item appears when the browser offers it) and the service worker **precaches posters/backdrops/fonts** for instant reopens
+### 📱 Every device, every ratio
+- **Phones** (portrait/landscape): thumb-reachable **bottom app navigation** (Home · New & Hot · Search · My List), compact heroes, swipe-snapping shelves with no hover arrows, wrap-around player chrome
+- **Touch gestures**: tap = show controls, **double-tap left/right = ±10s** with seek flash, scroll-snap cards, `touch-action: manipulation` everywhere (no double-tap zoom lag)
+- **Tablets / iPad** (4:3 portrait): resized card grid & hero; **TVs & ultrawide** (≥1900px/≥2500px): wider gutters, larger cards, taller billboard
+- **Safe areas**: notch/rounded-corner/gesture-bar insets (`env(safe-area-inset-*)`) across navbar, player, toasts, modals, skip pills; `100dvh` for mobile URL bars; `viewport-fit=cover`
+- **Fullscreen button** on any device (+ best-effort landscape lock on phones when entering)
+- Installed-app mode (PWA/Capacitor) gets status-bar padding and overscroll containment
+
+### 📦 Mobile app (three ways to install)
+1. **Android/desktop — one tap**: account menu → *Install Series Hub App* (native `beforeinstallprompt`)
+2. **iPhone/iPad**: automatic guidance (“Share → Add to Home Screen”) — standalone mode with custom theme bar + icons
+3. **Native store builds**: Capacitor is preconfigured (`capacitor.config.json`, hardened webview flags) —
+   ```bash
+   npm run cap:android   # adds android/ project (needs Android Studio SDK)
+   npm run cap:ios       # adds ios/ project (needs macOS + Xcode)
+   npm run cap:sync      # rebuild web assets + copy into native projects
+   ```
+
+### 🔐 Security
+- **Content Security Policy** injected into production builds (`script-src 'self'`, no iframes except youtube-nocookie, `object-src 'none'`, `frame-ancestors 'none'`, `upgrade-insecure-requests`) — dev mode stays HMR-friendly
+- Household **PINs stored salted + SHA-256 hashed** (WebCrypto), legacy plaintext auto-upgrades; trailer iframes run in a **`sandbox`**
+- `referrer: strict-origin-when-cross-origin`, `noreferrer` on external links, no secrets in the repo (TMDB key lives in gitignored `.env.local`)
+
 
 ### 🎉 Watch Party
 - Player people-icon → start a room (4-letter code) or paste a code; **play / pause / seek / episode changes sync live** across tabs, with invite-link copy and presence count

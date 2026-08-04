@@ -14,8 +14,10 @@ import TmdbShelves from './components/TmdbShelf.jsx'
 import TmdbModal from './components/TmdbModal.jsx'
 import KidsPin from './components/KidsPin.jsx'
 import LibraryManager from './components/LibraryManager.jsx'
+import MobileNav from './components/MobileNav.jsx'
 import { ROWS, FEATURED, SHOWS, byId, moreLikeThis } from './data/catalog.js'
 import { kidsAllowed } from './utils/ratings.js'
+import { hashPin } from './utils/pin.js'
 
 const read = (k, fb) => {
   try { const v = JSON.parse(localStorage.getItem(k)); return v ?? fb } catch { return fb }
@@ -198,28 +200,42 @@ export default function App () {
     return out
   }, [tab, customItems, continueItems, lastWatched, hasTaste, allowed, profile, scoreItem])
 
-  // ── PWA install prompt ────────────────────────────────────────────────────
+  // ── PWA install prompt (Chrome/Edge) + iOS guidance ──────────────────────
   useEffect(() => {
     const onBip = (e) => { e.preventDefault(); setInstallEvt(e) }
     window.addEventListener('beforeinstallprompt', onBip)
     return () => window.removeEventListener('beforeinstallprompt', onBip)
   }, [])
 
+  const isIOS = typeof navigator !== 'undefined' &&
+    (/iP(hone|ad|od)/.test(navigator.platform) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1))
+  const isStandalone = typeof window !== 'undefined' &&
+    (window.matchMedia?.('(display-mode: standalone)').matches || window.navigator.standalone === true)
+  const installAvailable = Boolean(installEvt) || (isIOS && !isStandalone)
+
   const onInstall = useCallback(async () => {
-    if (!installEvt) return
-    try {
-      const r = await installEvt.prompt()
-      say(r?.outcome === 'accepted' ? 'Installing Series Hub…' : 'Install dismissed')
-    } catch { say('Install is not available right now') }
-    setInstallEvt(null)
-  }, [installEvt, say])
+    if (installEvt) {
+      try {
+        const r = await installEvt.prompt()
+        say(r?.outcome === 'accepted' ? 'Installing Series Hub…' : 'Install dismissed')
+      } catch { say('Install is not available right now') }
+      setInstallEvt(null)
+    } else if (isIOS) {
+      say('iPhone/iPad: tap Share ⎋ → “Add to Home Screen”')
+    }
+  }, [installEvt, isIOS, say])
 
   useEffect(() => { window.scrollTo({ top: 0 }) }, [tab, searchOpen])
 
-  const onPinDone = (pin) => {
-    if (pinAsk === 'exit') switchProfile()
-    else if (pinAsk === 'setup' && pin) {
-      try { localStorage.setItem('sh.pin', JSON.stringify(pin)) } catch {}
+  const onPinDone = async (result) => {
+    if (pinAsk === 'exit') {
+      if (result?.upgraded) {
+        try { localStorage.setItem('sh.pin', JSON.stringify(result.upgraded)) } catch {}
+      }
+      switchProfile()
+    } else if (pinAsk === 'setup' && result?.pin) {
+      const rec = await hashPin(result.pin)
+      try { localStorage.setItem('sh.pin', JSON.stringify(rec)) } catch {}
       say('Kids profile lock PIN saved')
     }
     setPinAsk(null)
@@ -241,7 +257,7 @@ export default function App () {
             onSwitchProfile={guardedSwitch}
             onKidsSettings={() => setPinAsk('setup')}
             onUpload={() => setLibOpen(true)}
-            onInstall={installEvt ? onInstall : null}
+            onInstall={installAvailable ? onInstall : null}
             query={query}
             onQuery={setQuery}
             searchOpen={searchOpen}
@@ -307,6 +323,12 @@ export default function App () {
           )}
 
           <Footer />
+          <MobileNav
+            tab={tab}
+            onTab={(k) => { setQuery(''); setSearchOpen(false); setTab(k) }}
+            searchOpen={searchOpen}
+            onSearch={() => setSearchOpen(true)}
+          />
         </div>
       )}
 

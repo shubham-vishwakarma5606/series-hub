@@ -64,6 +64,7 @@ export default function TmdbModal ({ sel, onClose, onPick }) {
               className="m-trailer"
               src={`https://www.youtube-nocookie.com/embed/${trailerKey}?autoplay=1&rel=0&modestbranding=1`}
               title={`${title} — trailer`}
+              sandbox="allow-scripts allow-same-origin allow-presentation allow-popups allow-popups-to-escape-sandbox"
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
               allowFullScreen
             />

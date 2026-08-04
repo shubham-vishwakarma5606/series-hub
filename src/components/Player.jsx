@@ -40,6 +40,8 @@ export default function Player ({ showId, epIdx = 0, startAt = 0, partyJoin = nu
   const [audTr, setAudTr] = useState([]); const [selAud, setSelAud] = useState(0)
   const [levels, setLevels] = useState([]); const [selQ, setSelQ] = useState(-1)
   const [menu, setMenu] = useState(null)
+  const [fs, setFs] = useState(false)
+  const [flash, setFlash] = useState(null) // { side: 'l'|'r', k }
 
   const [partyCode, setPartyCode] = useState(null)
   const [partyPeers, setPartyPeers] = useState(1)
@@ -53,7 +55,9 @@ export default function Player ({ showId, epIdx = 0, startAt = 0, partyJoin = nu
   const barRef = useRef(null)
   const videoRef = useRef(null)
   const hlsRef = useRef(null)
+  const rootRef = useRef(null)
   const lastSavedRef = useRef(-1)
+  const lastTap = useRef({ at: 0, x: 0 })
   const onProgressRef = useRef(onProgress)
   const onToastRef = useRef(onToast)
   onProgressRef.current = onProgress
@@ -296,6 +300,44 @@ export default function Player ({ showId, epIdx = 0, startAt = 0, partyJoin = nu
     r.prompt().catch((e) => { if (e?.name !== 'NotAllowedError') onToastRef.current?.('Could not start casting') })
   }
 
+  // ── fullscreen (with best-effort landscape lock on phones) ───────────────
+  useEffect(() => {
+    const onFs = () => setFs(Boolean(document.fullscreenElement))
+    document.addEventListener('fullscreenchange', onFs)
+    return () => document.removeEventListener('fullscreenchange', onFs)
+  }, [])
+
+  const toggleFs = async () => {
+    try {
+      if (!document.fullscreenElement) {
+        await rootRef.current?.requestFullscreen?.()
+        try { await window.screen.orientation?.lock?.('landscape') } catch { /* not allowed — fine */ }
+      } else {
+        await document.exitFullscreen()
+        try { window.screen.orientation?.unlock?.() } catch { /* noop */ }
+      }
+    } catch { onToastRef.current?.('Fullscreen is not available here') }
+  }
+
+  // ── touch gestures: tap = controls, double-tap side = seek ±10s ──────────
+  const handleTouch = (e) => {
+    poke()
+    if (e.target.closest('button, input, .p-seek, .px-menu, .p-drawer, select')) return
+    const tch = e.changedTouches?.[0]
+    if (!tch) return
+    const now = Date.now()
+    const rect = rootRef.current?.getBoundingClientRect()
+    const x = rect ? (tch.clientX - rect.left) / rect.width : 0.5
+    if (now - lastTap.current.at < 320) {
+      const side = x < 0.5 ? 'l' : 'r'
+      seekBy(side === 'l' ? -10 : 10)
+      setFlash({ side, k: now })
+      lastTap.current = { at: 0, x: 0 }
+    } else {
+      lastTap.current = { at: now, x }
+    }
+  }
+
   // ── video element events (real mode) ─────────────────────────────────────
   const onVid = {
     onTimeUpdate: (e) => { setT(e.currentTarget.currentTime); report(e.currentTarget.currentTime, e.currentTarget.duration) },
@@ -327,7 +369,7 @@ export default function Player ({ showId, epIdx = 0, startAt = 0, partyJoin = nu
   }
 
   return (
-    <div className={`player${ctl ? ' showctl' : ''}`} onMouseMove={poke} onTouchStart={poke}>
+    <div ref={rootRef} className={`player${ctl ? ' showctl' : ''}`} onMouseMove={poke} onTouchEnd={handleTouch}>
       {real ? (
         <video
           ref={videoRef}
@@ -379,6 +421,12 @@ export default function Player ({ showId, epIdx = 0, startAt = 0, partyJoin = nu
         <button className="p-skip" onClick={() => { seekTo(skip.to); broadcast('seek', { t: skip.to }); onToast(`${skip.label} → skipped`) }}>
           {skip.label}
         </button>
+      )}
+
+      {flash && (
+        <span key={flash.k} className={`p-flash ${flash.side}`} aria-hidden="true">
+          {flash.side === 'l' ? '« 10' : '10 »'}
+        </span>
       )}
 
       {/* top chrome */}
@@ -531,6 +579,11 @@ export default function Player ({ showId, epIdx = 0, startAt = 0, partyJoin = nu
             <button className={partyCode ? 'sel' : ''} aria-label="Watch Party"
               onClick={() => setMenu(menu === 'party' ? null : 'party')}>
               <svg viewBox="0 0 24 24"><path fill="currentColor" d="M16 11a3 3 0 1 0-3-3 3 3 0 0 0 3 3zm-8 0a3 3 0 1 0-3-3 3 3 0 0 0 3 3zm0 2c-2.3 0-7 1.2-7 3.5V19h9v-2.5c0-.8.2-1.6.6-2.3A11.4 11.4 0 0 0 8 13zm8 0c-.3 0-.7 0-1 .1a4 4 0 0 1 1 3.4V19h6v-2.5c0-2.3-3.7-3.5-6-3.5z"/></svg>
+            </button>
+            <button onClick={toggleFs} aria-label={fs ? 'Exit fullscreen' : 'Fullscreen'}>
+              {fs
+                ? <svg viewBox="0 0 24 24"><path fill="currentColor" d="M5 16h3v3h2v-5H5v2zm3-8H5v2h5V5H8v3zm6 11h2v-3h3v-2h-5v5zm2-11V5h-2v5h5V8h-3z"/></svg>
+                : <svg viewBox="0 0 24 24"><path fill="currentColor" d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/></svg>}
             </button>
           </div>
         </div>
