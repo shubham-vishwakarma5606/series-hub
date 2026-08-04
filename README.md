@@ -48,8 +48,18 @@ A fully client-side, Netflix-style OTT streaming experience — rebuilt with a *
 ### 🔑 Sign in — Supabase (Google / any provider) + cloud sync
 - A red **Sign In** pill in the navbar (and the account menu) opens the auth modal: **Continue with Google** / **GitHub** one-tap OAuth — any provider you enable in the Supabase dashboard works with zero code changes — plus passwordless **email magic link**
 - Signed-in viewers get **cloud sync**: My List, likes, reminders and Continue Watching pull on login and push (debounced) on change — resume on any device
-- **Graceful guest mode**: without keys everything works locally and the modal shows the 4-step setup — run `supabase/schema.sql` (row-level security: everyone can only touch their own row), set `VITE_SUPABASE_URL` + `VITE_SUPABASE_ANON_KEY` in `.env.local`
+- **Graceful guest mode**: without keys everything works locally and the modal shows the setup steps
 - The Supabase client **lazy-loads as its own chunk** (only when auth is used), like hls.js
+
+**🔗 Linking your own project (2 min, on your machine):**
+1. **Create the sync table** — either paste `supabase/schema.sql` into the Dashboard SQL Editor, or run:
+   ```bash
+   SUPABASE_DB_URL="postgresql://postgres:<password>@db.<ref>.supabase.co:5432/postgres" npm run db:push
+   ```
+   (`scripts/supabase-apply.mjs` applies the schema + verifies the table, the 3 RLS policies and the trigger. The DB connection string is server-only — never commit it; `.env.local` is gitignored.)
+2. **Auth providers**: Dashboard → Authentication → Providers → enable **Google** (needs OAuth client credentials from Google Cloud Console — Supabase shows the exact redirect URL to paste) and/or **GitHub**, **email link**, etc. Set *URL Configuration → Site URL* to your app's origin.
+3. **Browser keys**: copy `.env.example` → `.env.local`, set `VITE_SUPABASE_URL` + `VITE_SUPABASE_ANON_KEY` (Dashboard → Settings → API → *anon public* — safe for the browser, RLS does the guarding), restart `npm run dev`.
+4. Row-level security means the anon key can only read/write the signed-in user's own row — see `supabase/schema.sql`.
 
 ### 🍪 Cookie & storage consent
 - One-time consent bar — **Accept all** / **Essential only**. Series Hub stores in localStorage, never ad trackers; essentials = auth session, profile, list. "Essential only" keeps likes/taste session-only and pauses cloud sync
@@ -148,6 +158,7 @@ npm run preview    # http://localhost:4173
 ```bash
 npm run check:data   # catalogue integrity (ids, rows, featured lineup)
 npm run check:ssr    # server-renders every screen/component and asserts output
+npm run db:push      # (on your machine) apply supabase/schema.sql to your database
 ```
 
 ## 🎨 Brand tokens
