@@ -187,6 +187,46 @@ export default function App () {
   const scoreItem = useCallback((s) => s.genres.reduce((a, g) => a + (taste[g] || 0), 0), [taste])
 
   const customItems = useMemo(() => SHOWS.filter((s) => s.custom), [])
+  const [botUploads, setBotUploads] = useState([])
+
+  // Auto-load Telegram bot uploads (written to public/uploads/telegram-library.json)
+  useEffect(() => {
+    fetch('/uploads/telegram-library.json')
+      .then((r) => r.ok ? r.json() : null)
+      .catch(() => null)
+      .then((data) => {
+        if (!Array.isArray(data)) return
+        const CUSTOM_ACCENTS = [['#0b1220', '#2e93ff'], ['#1a070c', '#e50914'], ['#06131f', '#18c6d8']]
+        const mapped = data
+          .filter((j) => j && j.id && j.title)
+          .map((j, i) => ({
+            id: String(j.id),
+            custom: true,
+            title: String(j.title).slice(0, 80),
+            type: j.type === 'series' ? 'series' : 'film',
+            year: Number(j.year) || new Date().getFullYear(),
+            age: ['TV-MA', 'TV-14', 'TV-PG', 'PG-13', 'R'].includes(j.age) ? j.age : 'TV-14',
+            seasons: j.type === 'series' ? Math.max(1, parseInt(j.seasons, 10) || 1) : undefined,
+            durMin: j.type !== 'series' ? (parseInt(j.durMin, 10) || 90) : undefined,
+            genres: Array.isArray(j.genres) && j.genres.length ? j.genres.map(String).slice(0, 4) : ['Drama'],
+            palette: CUSTOM_ACCENTS[i % CUSTOM_ACCENTS.length],
+            pattern: 'glow', font: 'bebas',
+            tags: Array.isArray(j.tags) ? j.tags.map(String) : ['licensed', 'telegram-upload'],
+            syn: String(j.syn || j.description || `${j.title} — uploaded via Telegram bot.`),
+            videoUrl: typeof j.videoUrl === 'string' && j.videoUrl ? j.videoUrl : undefined,
+            episodeVideos: Array.isArray(j.episodeVideos) ? j.episodeVideos.filter((u) => typeof u === 'string' && u) : undefined,
+            match: 92,
+            len: j.type === 'series' ? (j.seasons ? `${j.seasons} Season${j.seasons > 1 ? 's' : ''}` : '1 Season') : (j.durMin ? `${Math.floor(j.durMin / 60)}h ${j.durMin % 60}m` : '1h 30m'),
+            advisory: { 'TV-MA': 'smoking, language, violence', 'TV-14': 'fear, language, violence', 'TV-PG': 'mild language, thematic elements', 'PG-13': 'violence, some language', R: 'strong violence, language' }[j.age] || 'fear, language, violence',
+            cast: ['Bot User', 'Telegram Upload', 'Auto Feature', 'Continuous Series', 'Live Channel'],
+            creator: 'Telegram Bot',
+            flavor: 'Suspenseful',
+            searchText: [String(j.title), String(j.type), ...(Array.isArray(j.genres) ? j.genres : [])].join(' ').toLowerCase(),
+            rankPos: -1
+          }))
+        setBotUploads(mapped)
+      })
+  }, [])
 
   const heroItems = useMemo(() => (
     profile?.kids ? SHOWS.filter(kidsAllowed).slice(0, 3) : FEATURED
@@ -195,8 +235,9 @@ export default function App () {
   const rows = useMemo(() => {
     const dyn = []
     if (tab === 'home') {
-      if (customItems.length && !profile?.kids) {
-        dyn.push({ key: 'custom', title: 'Your Licensed Library', variant: 'land', items: customItems })
+      if ((customItems.length || botUploads.length) && !profile?.kids) {
+        const allCustom = [...customItems, ...botUploads].filter(Boolean)
+        dyn.push({ key: 'custom', title: 'Your Licensed Library', variant: 'land', items: allCustom })
       }
       if (continueItems.length) {
         dyn.push({ key: 'continue', title: `Continue Watching for ${profile?.name || 'You'}`, variant: 'land', items: continueItems.filter(allowed) })
@@ -468,8 +509,8 @@ export default function App () {
       )}
 
       {libOpen && (
-        <LibraryManager
-          existingCount={customItems.length}
+          <LibraryManager
+          existingCount={customItems.length + botUploads.length}
           onClose={() => setLibOpen(false)}
           onSaved={() => setLibOpen(false)}
           onToast={say}

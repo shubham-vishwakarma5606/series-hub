@@ -40,6 +40,7 @@ export default function Player ({ showId, epIdx = 0, startAt = 0, partyJoin = nu
   const [subTr, setSubTr] = useState([]); const [selSub, setSelSub] = useState(-1)
   const [audTr, setAudTr] = useState([]); const [selAud, setSelAud] = useState(0)
   const [levels, setLevels] = useState([]); const [selQ, setSelQ] = useState(-1)
+  const [speed, setSpeed] = useState(1)
   const [menu, setMenu] = useState(null)
   const [fs, setFs] = useState(false)
   const [flash, setFlash] = useState(null) // { side: 'l'|'r', k }
@@ -178,17 +179,18 @@ export default function Player ({ showId, epIdx = 0, startAt = 0, partyJoin = nu
   // ── SIMULATED MODE: fake clock ────────────────────────────────────────────
   useEffect(() => {
     if (real || !playing || ended) return undefined
+    const intervalMs = 1000 / speed
     const id = setInterval(() => {
       setT((v) => {
-        const nv = Math.min(duration, v + 1)
+        const nv = Math.min(duration, v + (1 / speed))
         report(nv, duration)
         return nv
       })
-      setBufPct((b) => Math.min(100, b + 0.5))
-    }, 1000)
+      setBufPct((b) => Math.min(100, b + 0.5 * speed))
+    }, intervalMs)
     return () => clearInterval(id)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [real, playing, ended, duration])
+  }, [real, playing, ended, duration, speed])
 
   useEffect(() => { if (ended) { setPlaying(false); setCtl(true) } }, [ended])
 
@@ -360,6 +362,11 @@ export default function Player ({ showId, epIdx = 0, startAt = 0, partyJoin = nu
     }
   }
 
+  // Apply playback speed to real video element
+  useEffect(() => {
+    if (real && videoRef.current) videoRef.current.playbackRate = speed
+  }, [speed, real])
+
   // ── video element events (real mode) ─────────────────────────────────────
   const onVid = {
     onTimeUpdate: (e) => { setT(e.currentTarget.currentTime); report(e.currentTarget.currentTime, e.currentTarget.duration) },
@@ -481,8 +488,8 @@ export default function Player ({ showId, epIdx = 0, startAt = 0, partyJoin = nu
       {menu === 'subs' && (
         <div className="px-menu" role="menu">
           <h5>Subtitles</h5>
-          {[{ name: 'Off', lang: '', i: -1 }, ...subTr.map((s, i) => ({ name: s.name || s.lang || `Track ${i + 1}`, lang: s.lang, i }))].map((o) => (
-            <button key={o.i + o.name} className={selSub === o.i ? 'on' : ''} onClick={() => pickTrack('subs', o.i)}>
+          {(real ? [{ name: 'Off', lang: '', i: -1 }, ...subTr.map((s, i) => ({ name: s.name || s.lang || `Track ${i + 1}`, lang: s.lang, i }))] : [{ name: 'Off', i: -1 }, { name: 'English (CC)', i: 0 }, { name: 'हिन्दी', i: 1 }, { name: 'Español', i: 2 }]).map((o) => (
+            <button key={o.i + o.name} className={selSub === o.i ? 'on' : ''} onClick={() => { if (real && hlsRef.current) { hlsRef.current.subtitleTrack = o.i; hlsRef.current.subtitleDisplay = o.i >= 0 } setSelSub(o.i); setMenu(null); onToast(`Subtitles: ${o.name}`) }}>
               {o.name}{selSub === o.i && <span>✓</span>}
             </button>
           ))}
@@ -491,9 +498,9 @@ export default function Player ({ showId, epIdx = 0, startAt = 0, partyJoin = nu
       {menu === 'audio' && (
         <div className="px-menu" role="menu">
           <h5>Audio</h5>
-          {audTr.map((a, i) => (
-            <button key={i} className={selAud === i ? 'on' : ''} onClick={() => pickTrack('audio', i)}>
-              {a.name || a.lang || `Track ${i + 1}`}{selAud === i && <span>✓</span>}
+          {(real ? audTr.map((a, i) => ({ name: a.name || a.lang || `Track ${i + 1}`, i })) : [{ name: 'English', i: 0 }, { name: 'Hindi', i: 1 }, { name: 'Español', i: 2 }]).map((o) => (
+            <button key={o.i} className={selAud === o.i ? 'on' : ''} onClick={() => { if (real && hlsRef.current) hlsRef.current.audioTrack = o.i; setSelAud(o.i); setMenu(null); onToast(`Audio: ${o.name}`) }}>
+              {o.name}{selAud === o.i && <span>✓</span>}
             </button>
           ))}
         </div>
@@ -501,9 +508,19 @@ export default function Player ({ showId, epIdx = 0, startAt = 0, partyJoin = nu
       {menu === 'quality' && (
         <div className="px-menu" role="menu">
           <h5>Quality</h5>
-          {[{ name: 'Auto', height: 0, i: -1 }, ...levels.map((l, i) => ({ name: `${l.height}p`, height: l.height, i }))].map((o) => (
-            <button key={o.i} className={selQ === o.i ? 'on' : ''} onClick={() => pickTrack('quality', o.i)}>
+          {(real ? [{ name: 'Auto', height: 0, i: -1 }, ...levels.map((l, i) => ({ name: `${l.height}p`, height: l.height, i }))] : [{ name: 'Auto', i: -1 }, { name: '480p', i: 0 }, { name: '720p', i: 1 }, { name: '1080p', i: 2 }, { name: '4K HDR', i: 3 }]).map((o) => (
+            <button key={o.i} className={selQ === o.i ? 'on' : ''} onClick={() => { if (real && hlsRef.current) hlsRef.current.currentLevel = o.i; setSelQ(o.i); setMenu(null); onToast(`Quality: ${o.name}`) }}>
               {o.name}{selQ === o.i && <span>✓</span>}
+            </button>
+          ))}
+        </div>
+      )}
+      {menu === 'speed' && (
+        <div className="px-menu" role="menu">
+          <h5>Playback Speed</h5>
+          {[0.5, 0.75, 1, 1.25, 1.5, 1.75, 2].map((sVal) => (
+            <button key={sVal} className={speed === sVal ? 'on' : ''} onClick={() => { setSpeed(sVal); if (real && videoRef.current) videoRef.current.playbackRate = sVal; setMenu(null); onToast(`Speed: ${sVal}x`) }}>
+              {sVal}x {speed === sVal && <span>✓</span>}
             </button>
           ))}
         </div>
@@ -573,36 +590,29 @@ export default function Player ({ showId, epIdx = 0, startAt = 0, partyJoin = nu
               </button>
             )}
 
-            {real && subTr.length > 0 && (
-              <button className={selSub >= 0 ? 'sel' : ''} aria-label="Subtitles"
-                onClick={() => setMenu(menu === 'subs' ? null : 'subs')}>
-                <svg viewBox="0 0 24 24"><path fill="currentColor" d="M20 4H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2zM6 16H4.5v-1.5H6V16zm0-3.5H4.5V11H6v1.5zm3.5 3.5H8v-1.5h1.5V16zm0-3.5H8V11h1.5v1.5zM19 16h-8v-1.5h8V16zm0-3.5h-8V11h8v1.5z"/></svg>
-              </button>
-            )}
-            {!real && (
-              <button onClick={() => onToast('Subtitles: English (CC), हिन्दी, Español')} aria-label="Audio and subtitles">
-                <svg viewBox="0 0 24 24"><path fill="currentColor" d="M20 4H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2zM6 16H4.5v-1.5H6V16zm0-3.5H4.5V11H6v1.5zm3.5 3.5H8v-1.5h1.5V16zm0-3.5H8V11h1.5v1.5zM19 16h-8v-1.5h8V16zm0-3.5h-8V11h8v1.5z"/></svg>
-              </button>
-            )}
+            {/* Subtitles — always visible */}
+            <button className={(real ? selSub >= 0 : false) ? 'sel' : ''} aria-label="Subtitles"
+              onClick={() => setMenu(menu === 'subs' ? null : 'subs')}>
+              <svg viewBox="0 0 24 24"><path fill="currentColor" d="M20 4H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2zM6 16H4.5v-1.5H6V16zm0-3.5H4.5V11H6v1.5zm3.5 3.5H8v-1.5h1.5V16zm0-3.5H8V11h1.5v1.5zM19 16h-8v-1.5h8V16zm0-3.5h-8V11h8v1.5z"/></svg>
+            </button>
 
-            {real && audTr.length > 1 && (
-              <button className={selAud > 0 ? 'sel' : ''} aria-label="Audio track"
-                onClick={() => setMenu(menu === 'audio' ? null : 'audio')}>
-                <svg viewBox="0 0 24 24"><path fill="currentColor" d="M12 3a9 9 0 0 0-9 9v7h4v-6H5a7 7 0 0 1 14 0h-2v6h4v-7a9 9 0 0 0-9-9z"/></svg>
-              </button>
-            )}
+            {/* Audio — always visible */}
+            <button className={(real ? selAud > 0 : false) ? 'sel' : ''} aria-label="Audio track"
+              onClick={() => setMenu(menu === 'audio' ? null : 'audio')}>
+              <svg viewBox="0 0 24 24"><path fill="currentColor" d="M12 3a9 9 0 0 0-9 9v7h4v-6H5a7 7 0 0 1 14 0h-2v6h4v-7a9 9 0 0 0-9-9z"/></svg>
+            </button>
 
-            {real && levels.length > 1 && (
-              <button className={selQ >= 0 ? 'sel' : ''} aria-label="Quality"
-                onClick={() => setMenu(menu === 'quality' ? null : 'quality')}>
-                <svg viewBox="0 0 24 24"><path fill="currentColor" d="M19.4 13a7.5 7.5 0 0 0 .1-1 7.5 7.5 0 0 0-.1-1l2.1-1.6a.5.5 0 0 0 .1-.7l-2-3.4a.5.5 0 0 0-.7-.2l-2.5 1a7.4 7.4 0 0 0-1.7-1L14.5 2.7a.5.5 0 0 0-.5-.4h-4a.5.5 0 0 0-.5.4l-.3 2.7a7.4 7.4 0 0 0-1.7 1l-2.5-1a.5.5 0 0 0-.7.2l-2 3.4a.5.5 0 0 0 .1.7L4.5 11a7.5 7.5 0 0 0-.1 1 7.5 7.5 0 0 0 .1 1l-2.1 1.6a.5.5 0 0 0-.1.7l2 3.4c.1.3.4.4.7.3l2.5-1a7.4 7.4 0 0 0 1.7 1l.3 2.7c0 .2.2.4.5.4h4c.3 0 .5-.2.5-.4l.3-2.7a7.4 7.4 0 0 0 1.7-1l2.5 1c.3.1.6 0 .7-.2l2-3.4a.5.5 0 0 0-.1-.7L19.4 13zM12 15.5a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7z"/></svg>
-              </button>
-            )}
-            {!real && (
-              <button onClick={() => onToast('Already at the best quality: 4K HDR')} aria-label="Settings">
-                <svg viewBox="0 0 24 24"><path fill="currentColor" d="M19.4 13a7.5 7.5 0 0 0 .1-1 7.5 7.5 0 0 0-.1-1l2.1-1.6a.5.5 0 0 0 .1-.7l-2-3.4a.5.5 0 0 0-.7-.2l-2.5 1a7.4 7.4 0 0 0-1.7-1L14.5 2.7a.5.5 0 0 0-.5-.4h-4a.5.5 0 0 0-.5.4l-.3 2.7a7.4 7.4 0 0 0-1.7 1l-2.5-1a.5.5 0 0 0-.7.2l-2 3.4a.5.5 0 0 0 .1.7L4.5 11a7.5 7.5 0 0 0-.1 1 7.5 7.5 0 0 0 .1 1l-2.1 1.6a.5.5 0 0 0-.1.7l2 3.4c.1.3.4.4.7.3l2.5-1a7.4 7.4 0 0 0 1.7 1l.3 2.7c0 .2.2.4.5.4h4c.3 0 .5-.2.5-.4l.3-2.7a7.4 7.4 0 0 0 1.7-1l2.5 1c.3.1.6 0 .7-.2l2-3.4a.5.5 0 0 0-.1-.7L19.4 13zM12 15.5a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7z"/></svg>
-              </button>
-            )}
+            {/* Quality — always visible */}
+            <button className={(real ? selQ >= 0 : false) ? 'sel' : ''} aria-label="Quality"
+              onClick={() => setMenu(menu === 'quality' ? null : 'quality')}>
+              <svg viewBox="0 0 24 24"><path fill="currentColor" d="M19.4 13a7.5 7.5 0 0 0 .1-1 7.5 7.5 0 0 0-.1-1l2.1-1.6a.5.5 0 0 0 .1-.7l-2-3.4a.5.5 0 0 0-.7-.2l-2.5 1a7.4 7.4 0 0 0-1.7-1L14.5 2.7a.5.5 0 0 0-.5-.4h-4a.5.5 0 0 0-.5.4l-.3 2.7a7.4 7.4 0 0 0-1.7 1l-2.5-1a.5.5 0 0 0-.7.2l-2 3.4a.5.5 0 0 0 .1.7L4.5 11a7.5 7.5 0 0 0-.1 1 7.5 7.5 0 0 0 .1 1l-2.1 1.6a.5.5 0 0 0-.1.7l2 3.4c.1.3.4.4.7.3l2.5-1a7.4 7.4 0 0 0 1.7 1l.3 2.7c0 .2.2.4.5.4h4c.3 0 .5-.2.5-.4l.3-2.7a7.4 7.4 0 0 0 1.7-1l2.5 1c.3.1.6 0 .7-.2l2-3.4a.5.5 0 0 0-.1-.7L19.4 13zM12 15.5a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7z"/></svg>
+            </button>
+            {/* Speed — always visible */}
+            <button className={speed !== 1 ? 'sel' : ''} aria-label="Playback speed"
+              onClick={() => setMenu(menu === 'speed' ? null : 'speed')}>
+              <svg viewBox="0 0 24 24"><path fill="currentColor" d="M13.5 5.5c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 13c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zM12 2a4 4 0 0 1 4 4 4 4 0 0 1-4 4 4 4 0 0 1-4-4 4 4 0 0 1 4-4zm0 16a4 4 0 0 1 4 4 4 4 0 0 1-4 4 4 4 0 0 1-4-4 4 4 0 0 1 4-4z"/></svg>
+              <span style={{ fontSize: '.65rem', fontWeight: 700, letterSpacing: '.05em', marginLeft: '.2em' }}>{speed}x</span>
+            </button>
 
             {real && pipOk && (
               <button onClick={togglePip} aria-label="Picture in Picture">
