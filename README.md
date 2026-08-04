@@ -161,6 +161,12 @@ npm run check:ssr    # server-renders every screen/component and asserts output
 npm run db:push      # (on your machine) apply supabase/schema.sql to your database
 ```
 
+## 🚀 Deploy (make it live)
+
+Auto-deploys to **GitHub Pages** on every push — checks-gated so broken builds never ship:
+**https://shubham-vishwakarma5606.github.io/series-hub/** — 3-step setup in [`docs/DEPLOY.md`](docs/DEPLOY.md)
+(one paste of [`docs/DEPLOY-PAGES.yml`](docs/DEPLOY-PAGES.yml) into `.github/workflows/deploy.yml`, then Settings → Pages → "GitHub Actions").
+
 ## 🎨 Brand tokens
 
 Defined once in `src/styles/main.css`:
