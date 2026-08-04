@@ -57,7 +57,7 @@ const cases = {
   MobileNav: <MobileNav tab="home" onTab={noop} searchOpen={false} onSearch={noop} onGetApp={noop} />,
   GetAppModal: <GetAppModal onClose={noop} installEvt={null} onInstall={noop} onToast={noop} />,
   AppBannerHidden: <AppBanner onGetApp={noop} />,               // renders '' in SSR (no Android UA)
-  AuthModalGuest: <AuthModal onClose={noop} onToast={noop} />,  // guest mode (no Supabase env in CI)
+  AuthModal: <AuthModal onClose={noop} onToast={noop} />,
   CookieConsent: <CookieConsent onDone={noop} />,
   Channels: <Channels live={{}} onPlay={noop} onToast={noop} />,
   ChannelsLive: <Channels live={{ 'ch-1': { state: 'slow', detail: 'buffering…', at: Date.now() } }} onPlay={noop} onToast={noop} />,
