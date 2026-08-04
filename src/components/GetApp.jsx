@@ -136,11 +136,11 @@ export function GetAppModal ({ onClose, installEvt, onInstall, onToast }) {
 // ── Smart banner (Android phones, browser mode only) ────────────────────────
 export function AppBanner ({ onGetApp }) {
   const [dismissed, setDismissed] = useState(() => {
-    try { return localStorage.getItem(DISMISS_KEY) === '1' } catch { return true }
+    try { return typeof window !== 'undefined' && window.localStorage?.getItem(DISMISS_KEY) === '1' } catch { return true }
   })
   if (dismissed || !isAndroidDevice() || isStandaloneMode()) return null
   const dismiss = () => {
-    try { localStorage.setItem(DISMISS_KEY, '1') } catch {}
+    try { if (typeof window !== 'undefined') window.localStorage?.setItem(DISMISS_KEY, '1') } catch {}
     setDismissed(true)
   }
   return (

@@ -71,10 +71,16 @@ export async function signOut () {
 // ── cloud sync — one JSON row per user (supabase/schema.sql) ───────────────
 export const SYNC_KEYS = ['sh.mylist', 'sh.remind', 'sh.likes', 'sh.progress']
 
+function safeLSGet (k) {
+  try { return typeof window !== 'undefined' ? window.localStorage?.getItem(k) : null } catch { return null }
+}
 export function collectLocalSyncPayload () {
   const payload = { at: Date.now() }
   for (const k of SYNC_KEYS) {
-    try { payload[k] = JSON.parse(localStorage.getItem(k)) } catch { /* skip */ }
+    try {
+      const raw = safeLSGet(k)
+      if (raw) payload[k] = JSON.parse(raw)
+    } catch { /* skip */ }
   }
   return payload
 }

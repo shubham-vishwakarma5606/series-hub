@@ -256,10 +256,19 @@ const hash = (s) => { let h = 7; for (let i = 0; i < s.length; i++) h = (h * 31 
 
 // User-uploaded licensed titles (via the Library Manager — localStorage `sh.custom`)
 const CUSTOM_ACCENTS = [['#0b1220', '#2e93ff'], ['#1a070c', '#e50914'], ['#06131f', '#18c6d8']]
-function readCustomRaw () {
-  if (typeof localStorage === 'undefined') return []
+function safeGetLS (k) {
   try {
-    const raw = JSON.parse(localStorage.getItem('sh.custom') || '[]')
+    if (typeof window === 'undefined') return null
+    // Accessing window.localStorage can throw SecurityError in some iframe/sandbox contexts
+    const ls = window.localStorage
+    return ls ? ls.getItem(k) : null
+  } catch { return null }
+}
+function readCustomRaw () {
+  try {
+    const rawStr = safeGetLS('sh.custom')
+    if (!rawStr) return []
+    const raw = JSON.parse(rawStr)
     if (!Array.isArray(raw)) return []
     return raw
       .filter((j) => j && j.id && j.title)
