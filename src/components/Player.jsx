@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { byId } from '../data/catalog.js'
+import { findChannelByUrl } from '../data/streams.js'
 import Logo from './Logo.jsx'
 import { PARTY_SUPPORTED, makeRoomCode, joinParty, sendParty, leaveParty } from '../utils/party.js'
 
@@ -17,7 +18,7 @@ const isHls = (u) => /\.m3u8($|\?)/i.test(u)
 //           with hls.js track menus (audio / subtitles / quality) + PiP
 //  • SIMULATED — marked cinematic preview when no stream is configured
 // Both modes feed "Continue Watching" via onProgress and support resume (startAt).
-export default function Player ({ showId, epIdx = 0, startAt = 0, partyJoin = null, onClose, onToast, onProgress }) {
+export default function Player ({ showId, epIdx = 0, startAt = 0, partyJoin = null, onClose, onToast, onProgress, onHealth }) {
   const show = byId[showId]
   const isSeries = show.type === 'series'
   const [epN, setEpN] = useState(Math.min(epIdx, (show.episodes || []).length - 1))
@@ -48,6 +49,7 @@ export default function Player ({ showId, epIdx = 0, startAt = 0, partyJoin = nu
   const [partyInput, setPartyInput] = useState('')
   const [castAvail, setCastAvail] = useState(false)
   const [casting, setCasting] = useState(false)
+  const [health, setHealth] = useState(null) // { state: 'ok'|'slow'|'down', detail } — stream LED
   const applyingRemote = useRef(false)
   const partyRef = useRef(null)
 
@@ -60,8 +62,24 @@ export default function Player ({ showId, epIdx = 0, startAt = 0, partyJoin = nu
   const lastTap = useRef({ at: 0, x: 0 })
   const onProgressRef = useRef(onProgress)
   const onToastRef = useRef(onToast)
+  const onHealthRef = useRef(onHealth)
   onProgressRef.current = onProgress
   onToastRef.current = onToast
+  onHealthRef.current = onHealth
+
+  // Live stream health → the player LED + the Network Status dashboard.
+  const chanRef = useRef(null)
+  chanRef.current = real ? findChannelByUrl(src) : null
+  const healthRef = useRef(null)
+  const reportHealth = (state, detail) => {
+    const prev = healthRef.current
+    if (prev?.state === state && prev?.detail === detail) return
+    const rec = { state, detail, at: Date.now() }
+    healthRef.current = rec
+    setHealth(rec)
+    const c = chanRef.current
+    if (c) onHealthRef.current?.(c.id, { ...rec, url: c.url })
+  }
 
   const duration = real ? dur : fallbackDur
   const ended = real ? endedReal : t >= duration
@@ -122,6 +140,7 @@ export default function Player ({ showId, epIdx = 0, startAt = 0, partyJoin = nu
     setT(0); setEndedReal(false); setBufPct(0); setPlaying(true); setMenu(null)
     setSubTr([]); setSelSub(-1); setAudTr([]); setSelAud(0); setLevels([]); setSelQ(-1)
     lastSavedRef.current = -1
+    reportHealth('slow', 'connecting…')
 
     const start = () => { v.play().catch(() => setPlaying(false)) }
 
@@ -141,7 +160,10 @@ export default function Player ({ showId, epIdx = 0, startAt = 0, partyJoin = nu
           start()
         })
         hls.on(Hls.Events.ERROR, (_e, data) => {
-          if (data?.fatal) onToastRef.current?.('Stream error — check the source URL / CORS headers')
+          if (data?.fatal) {
+            reportHealth('down', data?.details ? String(data.details).replace(/_/g, ' ') : 'fatal stream error')
+            onToastRef.current?.('Stream error — check the source URL / CORS headers')
+          } else if (data?.type === 'networkError') reportHealth('slow', 'network hiccup — recovering')
         })
       }).catch(() => onToastRef.current?.('Could not load the stream engine'))
     } else {
@@ -347,6 +369,10 @@ export default function Player ({ showId, epIdx = 0, startAt = 0, partyJoin = nu
       if (startAt > 10 && startAt < d - 10) e.currentTarget.currentTime = startAt
     },
     onPlay: () => { setPlaying(true); setEndedReal(false) },
+    onPlaying: () => reportHealth('ok', 'playing smoothly'),
+    onCanPlay: () => { if (healthRef.current?.state === 'slow') reportHealth('ok', 'playing smoothly') },
+    onWaiting: () => reportHealth('slow', 'buffering…'),
+    onStalled: () => reportHealth('slow', 'stalled — waiting for data'),
     onPause: () => setPlaying(false),
     onEnded: () => setEndedReal(true),
     onProgress: (e) => {
@@ -355,7 +381,10 @@ export default function Player ({ showId, epIdx = 0, startAt = 0, partyJoin = nu
         if (v.buffered.length && v.duration) setBufPct((v.buffered.end(v.buffered.length - 1) / v.duration) * 100)
       } catch { /* noop */ }
     },
-    onError: () => onToastRef.current?.('Could not load this video — check the URL and licensing host')
+    onError: () => {
+      reportHealth('down', 'load error — source unreachable or blocked')
+      onToastRef.current?.('Could not load this video — check the URL and licensing host')
+    }
   }
 
   const label = isSeries ? `S1:E${ep.n} “${ep.title}”` : show.title
@@ -437,6 +466,15 @@ export default function Player ({ showId, epIdx = 0, startAt = 0, partyJoin = nu
         <span className="p-brand"><Logo compact /></span>
         {partyCode && <span className="p-flag party">● PARTY{partyPeers > 1 ? ` ×${partyPeers}` : ''}</span>}
         <span className="p-flag">{casting ? 'PLAYING ON TV' : real ? 'HD · LIVE SOURCE' : '4K ULTRA HD · DOLBY VISION'}</span>
+        {real && health && (
+          <span
+            className={`p-led ${health.state}`}
+            title={`Stream health: ${health.state === 'ok' ? 'green — playing smoothly' : health.state === 'slow' ? 'yellow — ' + health.detail : 'red — ' + health.detail}`}
+          >
+            <span className="led" aria-hidden="true" />
+            {health.state === 'ok' ? 'SOURCE OK' : health.state === 'slow' ? 'BUFFERING' : 'SOURCE DOWN'}
+          </span>
+        )}
       </div>
 
       {/* track / quality menus (real HLS only) */}

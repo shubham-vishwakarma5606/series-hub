@@ -16,6 +16,7 @@
   },
   "dependencies": {
     "@capacitor/core": "^8.5.0",
+    "@supabase/supabase-js": "^2.112.0",
     "hls.js": "^1.6.16",
     "qrcode": "^1.5.4",
     "react": "^18.3.1",

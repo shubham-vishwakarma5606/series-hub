@@ -45,6 +45,20 @@ A fully client-side, Netflix-style OTT streaming experience — rebuilt with a *
 - Their cards open a real-details modal with an **official YouTube trailer player** (youtube-nocookie embed), taglines, cast and TMDB-powered "More Like This"
 - 10-minute session cache; entire feature auto-disables when no key is set
 
+### 🔑 Sign in — Supabase (Google / any provider) + cloud sync
+- A red **Sign In** pill in the navbar (and the account menu) opens the auth modal: **Continue with Google** / **GitHub** one-tap OAuth — any provider you enable in the Supabase dashboard works with zero code changes — plus passwordless **email magic link**
+- Signed-in viewers get **cloud sync**: My List, likes, reminders and Continue Watching pull on login and push (debounced) on change — resume on any device
+- **Graceful guest mode**: without keys everything works locally and the modal shows the 4-step setup — run `supabase/schema.sql` (row-level security: everyone can only touch their own row), set `VITE_SUPABASE_URL` + `VITE_SUPABASE_ANON_KEY` in `.env.local`
+- The Supabase client **lazy-loads as its own chunk** (only when auth is used), like hls.js
+
+### 🍪 Cookie & storage consent
+- One-time consent bar — **Accept all** / **Essential only**. Series Hub stores in localStorage, never ad trackers; essentials = auth session, profile, list. "Essential only" keeps likes/taste session-only and pauses cloud sync
+
+### 📡 Network Status — channel traffic lights
+- New **Network Status** screen (navbar link · mobile **Status** tab): every stream source is a channel — built-in open-license channels, your uploaded licensed titles, and channels from your streaming API
+- Two lights per channel: **availability** (byte-range ping every 25 s with latency in ms) and **playback** (fed live by the player: smooth / buffering / error). The player chrome carries the same LED — 🟢 ok · 🟡 degraded · 🔴 down
+- Link your own licensed streaming API via `VITE_STREAM_API_URL` (GET JSON `[{"name","url","cat","showId"}]`). Validated for direct media URLs only (.m3u8/.mpd/.mp4/.webm) — **embed/iframe providers are rejected**; endpoint health (connected in N ms / error) is shown at the top
+
 ### ⏯️ Continue Watching + recommendations
 - Playback position (real streams *and* simulated previews) is saved per title/episode and surfaces as a **"Continue Watching for {profile}"** row with red progress bars — click play to **resume where you left off**
 - Finishing a title (97%+) auto-clears it; a **"Because you watched …"** row recomputes from your most recent watch
@@ -62,7 +76,7 @@ A fully client-side, Netflix-style OTT streaming experience — rebuilt with a *
 - Home gets a **"Top Picks for {name}"** shelf and generic shelves reorder by your taste; Top 10 / Originals rows keep editorial order
 
 ### 📱 Every device, every ratio
-- **Phones** (portrait/landscape): thumb-reachable **bottom app navigation** (Home · New & Hot · Search · My List · Get App), compact heroes, swipe-snapping shelves with no hover arrows, wrap-around player chrome
+- **Phones** (portrait/landscape): thumb-reachable **bottom app navigation** (Home · New & Hot · Search · Status · My List · Get App), compact heroes, swipe-snapping shelves with no hover arrows, wrap-around player chrome
 - **Touch gestures**: tap = show controls, **double-tap left/right = ±10s** with seek flash, scroll-snap cards, `touch-action: manipulation` everywhere (no double-tap zoom lag)
 - **Tablets / iPad** (4:3 portrait): resized card grid & hero; **TVs & ultrawide** (≥1900px/≥2500px): wider gutters, larger cards, taller billboard
 - **Safe areas**: notch/rounded-corner/gesture-bar insets (`env(safe-area-inset-*)`) across navbar, player, toasts, modals, skip pills; `100dvh` for mobile URL bars; `viewport-fit=cover`
@@ -92,7 +106,8 @@ Three ways to install:
 ### 🔐 Security
 - **Content Security Policy** injected into production builds (`script-src 'self'`, no iframes except youtube-nocookie, `object-src 'none'`, `frame-ancestors 'none'`, `upgrade-insecure-requests`) — dev mode stays HMR-friendly
 - Household **PINs stored salted + SHA-256 hashed** (WebCrypto), legacy plaintext auto-upgrades; trailer iframes run in a **`sandbox`**
-- `referrer: strict-origin-when-cross-origin`, `noreferrer` on external links, no secrets in the repo (TMDB key lives in gitignored `.env.local`)
+- **Cookie/storage consent** gates non-essential persistence; Supabase sync rows are protected by **row-level security** (see `supabase/schema.sql`); OAuth tokens never touch app code — handled by Supabase Auth in its own storage namespace
+- `referrer: strict-origin-when-cross-origin`, `noreferrer` on external links, no secrets in the repo (TMDB/Supabase keys live in gitignored `.env.local`)
 
 
 ### 🎉 Watch Party
@@ -159,21 +174,27 @@ public/
   sw.js                    offline precache (artwork, fonts)
 src/
   data/catalog.js          55 titles + row curation + search/more-like-this
+  data/streams.js          channel registry + streaming-API adapter (legal/direct only)
   utils/                   sound · tmdb · ratings · pin · party · library · appStore
+                           supabase (auth+sync) · cookies (consent) · health (probes)
   components/
     Boot.jsx               power-on splash
     Profiles.jsx           who's watching gate
-    Navbar.jsx             glass navbar, search, bell, account
+    Navbar.jsx             glass navbar, search, bell, account, Sign In
     Hero.jsx               rotating billboard
     Row.jsx / Card.jsx     shelves + hover-expansion poster cards
     Modal.jsx              title details (episodes / similar / trailers)
-    Player.jsx             real MP4/HLS playback (hls.js) or labelled simulated preview
+    Player.jsx             real MP4/HLS playback + live health LED
+    AuthModal.jsx          Google/GitHub/email sign-in (Supabase, guest fallback)
+    Channels.jsx           Network Status — channel traffic lights
+    CookieConsent.jsx      storage consent bar
     GetApp.jsx             Android download hub: modal (APK + PWA + QR) + smart banner
     MobileNav.jsx          thumb-reachable bottom app navigation
     SearchPage.jsx         RESULTS grid + related chips
     Footer.jsx             badges, links, TMDB attribution
   styles/main.css          full design system
 scripts/                   data + SSR checks
+supabase/schema.sql        cloud-sync table with row-level security
 capacitor.config.json      native shell config (com.serieshub.app)
 ```
 

@@ -6,6 +6,7 @@ const LINKS = [
   ['series', 'TV Shows'],
   ['films', 'Movies'],
   ['fresh', 'New & Popular'],
+  ['live', 'Network Status'],
   ['mylist', 'My List']
 ]
 
@@ -27,7 +28,7 @@ function Avatar ({ profile }) {
   )
 }
 
-export default function Navbar ({ tab, onTab, profile, onSwitchProfile, onKidsSettings, onUpload, onInstall, query, onQuery, searchOpen, onToggleSearch }) {
+export default function Navbar ({ tab, onTab, profile, onSwitchProfile, onKidsSettings, onUpload, onInstall, user, onAuth, onSignOut, query, onQuery, searchOpen, onToggleSearch }) {
   const [solid, setSolid] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
   const [bellOpen, setBellOpen] = useState(false)
@@ -84,6 +85,11 @@ export default function Navbar ({ tab, onTab, profile, onSwitchProfile, onKidsSe
       </div>
 
       <div className="nav-right">
+        {!user && (
+          <button className="nav-signin" onClick={() => onAuth?.()}>
+            Sign In
+          </button>
+        )}
         <div className={`nav-search${searchOpen ? ' open' : ''}`}>
           <button className="nav-icon" aria-label="Search" onClick={() => onToggleSearch(!searchOpen)}>
             <svg viewBox="0 0 24 24"><path fill="currentColor" d="M15.5 14h-.8l-.3-.3a6.5 6.5 0 1 0-.7.7l.3.3v.8l5 5 1.5-1.5-5-5zm-6 0a4.5 4.5 0 1 1 0-9 4.5 4.5 0 0 1 0 9z"/></svg>
@@ -165,7 +171,21 @@ export default function Navbar ({ tab, onTab, profile, onSwitchProfile, onKidsSe
                     </>
                   )}
                   <hr />
-                  <button className="acct-item center" onClick={() => { setMenuOpen(false); onSwitchProfile() }}>Sign out of Series Hub</button>
+                  {user ? (
+                    <>
+                      <div className="acct-user">
+                        <span className="led ok" aria-hidden="true" />
+                        <span className="acct-user-txt">
+                          <b>{user.user_metadata?.full_name || user.email || 'Signed in'}</b>
+                          <i>{user.email ? `${user.email} · ` : ''}cloud sync on</i>
+                        </span>
+                      </div>
+                      <button className="acct-item center" onClick={() => { setMenuOpen(false); onSignOut?.() }}>Sign out account</button>
+                    </>
+                  ) : (
+                    <button className="acct-item center blue" onClick={() => { setMenuOpen(false); onAuth?.() }}>Sign in with Google / email</button>
+                  )}
+                  <button className="acct-item center" onClick={() => { setMenuOpen(false); onSwitchProfile() }}>Switch profile</button>
                 </>
               )}
             </div>

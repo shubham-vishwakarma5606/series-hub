@@ -19,6 +19,9 @@ import KidsPin from '../src/components/KidsPin.jsx'
 import LibraryManager from '../src/components/LibraryManager.jsx'
 import MobileNav from '../src/components/MobileNav.jsx'
 import { GetAppModal, AppBanner } from '../src/components/GetApp.jsx'
+import AuthModal from '../src/components/AuthModal.jsx'
+import CookieConsent from '../src/components/CookieConsent.jsx'
+import Channels from '../src/components/Channels.jsx'
 import { ROWS, FEATURED, byId } from '../src/data/catalog.js'
 
 const noop = () => {}
@@ -32,6 +35,9 @@ const cases = {
   Profiles: <Profiles onPick={noop} />,
   Navbar: <Navbar tab="home" onTab={noop} profile={PROFILES[0]} onSwitchProfile={noop}
             query="" onQuery={noop} searchOpen={true} onToggleSearch={noop} />,
+  NavbarUser: <Navbar tab="live" onTab={noop} profile={PROFILES[0]} onSwitchProfile={noop}
+            user={{ email: 'radhe@example.com', user_metadata: {} }} onAuth={noop} onSignOut={noop}
+            query="" onQuery={noop} searchOpen={false} onToggleSearch={noop} />,
   Hero: <Hero items={FEATURED} onPlay={noop} onInfo={noop} />,
   Row: <Row title={ROWS.home[0].title} items={ROWS.home[0].items} variant="land" {...handlers} />,
   RowTop10: <Row title={ROWS.home[3].title} items={ROWS.home[3].items} variant="top10" {...handlers} />,
@@ -51,6 +57,10 @@ const cases = {
   MobileNav: <MobileNav tab="home" onTab={noop} searchOpen={false} onSearch={noop} onGetApp={noop} />,
   GetAppModal: <GetAppModal onClose={noop} installEvt={null} onInstall={noop} onToast={noop} />,
   AppBannerHidden: <AppBanner onGetApp={noop} />,               // renders '' in SSR (no Android UA)
+  AuthModalGuest: <AuthModal onClose={noop} onToast={noop} />,  // guest mode (no Supabase env in CI)
+  CookieConsent: <CookieConsent onDone={noop} />,
+  Channels: <Channels live={{}} onPlay={noop} onToast={noop} />,
+  ChannelsLive: <Channels live={{ 'ch-1': { state: 'slow', detail: 'buffering…', at: Date.now() } }} onPlay={noop} onToast={noop} />,
   SearchPage: <SearchPage query="neon" onQuery={noop} handlers={handlers} />,
   SearchEmpty: <SearchPage query="zzz nothing" onQuery={noop} handlers={handlers} />,
   SearchBlank: <SearchPage query="" onQuery={noop} handlers={handlers} />,

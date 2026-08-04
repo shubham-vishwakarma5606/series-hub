@@ -16,9 +16,17 @@ import KidsPin from './components/KidsPin.jsx'
 import LibraryManager from './components/LibraryManager.jsx'
 import MobileNav from './components/MobileNav.jsx'
 import { GetAppModal, AppBanner } from './components/GetApp.jsx'
+import AuthModal from './components/AuthModal.jsx'
+import CookieConsent from './components/CookieConsent.jsx'
+import Channels from './components/Channels.jsx'
 import { ROWS, FEATURED, SHOWS, byId, moreLikeThis } from './data/catalog.js'
 import { kidsAllowed } from './utils/ratings.js'
 import { hashPin } from './utils/pin.js'
+import { getConsent } from './utils/cookies.js'
+import {
+  SUPABASE_READY, getSessionUser, onAuthChange, signOut,
+  SYNC_KEYS, collectLocalSyncPayload, pullCloud, pushCloud
+} from './utils/supabase.js'
 
 const read = (k, fb) => {
   try { const v = JSON.parse(localStorage.getItem(k)); return v ?? fb } catch { return fb }
@@ -43,6 +51,13 @@ export default function App () {
   const [libOpen, setLibOpen] = useState(false)
   const [installEvt, setInstallEvt] = useState(null)
   const [getAppOpen, setGetAppOpen] = useState(false)
+  const [authOpen, setAuthOpen] = useState(false)
+  const [user, setUser] = useState(null)
+  const [consent, setConsent] = useState(() => getConsent())
+  const [liveHealth, setLiveHealth] = useState({}) // channelId/url -> { state, detail, at }
+
+  // optional-storage consent: likes/taste persist unless "Essential only"
+  const allowTaste = consent?.analytics !== false
   const [partyCode] = useState(() => {
     try {
       const c = new URLSearchParams(window.location.search).get('party')
@@ -112,11 +127,13 @@ export default function App () {
     const on = !likes[show.id]
     setLikes((prev) => {
       const next = { ...prev, [show.id]: on ? 1 : 0 }
-      try { localStorage.setItem('sh.likes', JSON.stringify(next)) } catch {}
+      if (allowTaste) { try { localStorage.setItem('sh.likes', JSON.stringify(next)) } catch {} }
       return next
     })
-    say(on ? `Liked “${show.title}” — more ${show.genres[0]} coming your way` : 'Preference updated')
-  }, [likes, say])
+    say(on
+      ? `Liked “${show.title}” — more ${show.genres[0]} coming your way${allowTaste ? '' : ' (session only — cookie choice)'}`
+      : 'Preference updated')
+  }, [likes, say, allowTaste])
 
   // ── playback / progress ───────────────────────────────────────────────────
   const openModal = useCallback((show) => {
@@ -227,6 +244,64 @@ export default function App () {
     }
   }, [installEvt, isIOS, say])
 
+  // ── Supabase auth: restore session + react to OAuth/magic-link sign-ins ──
+  useEffect(() => {
+    if (!SUPABASE_READY) return undefined
+    let mounted = true
+    let off = () => {}
+    getSessionUser().then((u) => { if (mounted) setUser(u) })
+    onAuthChange((u) => { if (mounted) setUser(u) }).then((fn) => { off = fn || off })
+    return () => { mounted = false; off() }
+  }, [])
+
+  // cloud sync — pull once per login, debounced push on local changes
+  const fromCloud = useRef(false)
+  const toldMissing = useRef(false)
+  const userId = user?.id || null
+  useEffect(() => {
+    if (!userId) return undefined
+    let on = true
+    pullCloud(userId).then((r) => {
+      if (!on || !r.ok) {
+        if (r?.missing && !toldMissing.current) { toldMissing.current = true; say('Cloud sync needs one setup step — run supabase/schema.sql in your Supabase project') }
+        return
+      }
+      fromCloud.current = true
+      const p = r.payload || {}
+      for (const k of SYNC_KEYS) if (p[k] != null) { try { localStorage.setItem(k, JSON.stringify(p[k])) } catch {} }
+      setMyList(new Set(p['sh.mylist'] || []))
+      setReminded(new Set(p['sh.remind'] || []))
+      setLikes(p['sh.likes'] || {})
+      setProgress(p['sh.progress'] || {})
+      say('Signed in — My List, likes & progress synced from your account ☁️')
+      setTimeout(() => { fromCloud.current = false }, 300)
+    })
+    return () => { on = false }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userId])
+
+  useEffect(() => {
+    if (!userId || consent?.analytics !== true || fromCloud.current) return undefined
+    const id = setTimeout(() => {
+      pushCloud(userId, collectLocalSyncPayload()).then((r) => {
+        if (r?.missing && !toldMissing.current) { toldMissing.current = true; say('Cloud sync needs one setup step — run supabase/schema.sql in your Supabase project') }
+      })
+    }, 1500)
+    return () => clearTimeout(id)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userId, myList, reminded, likes, progress, consent])
+
+  const onSignOut = useCallback(async () => {
+    await signOut()
+    setUser(null)
+    say('Signed out — your data stays on this device')
+  }, [say])
+
+  // live playback health from the player → Network Status dashboard lights
+  const handleHealth = useCallback((id, rec) => {
+    setLiveHealth((prev) => ({ ...prev, [id]: rec, ...(rec.url ? { [rec.url]: rec } : {}) }))
+  }, [])
+
   useEffect(() => { window.scrollTo({ top: 0 }) }, [tab, searchOpen])
 
   const onPinDone = async (result) => {
@@ -260,6 +335,9 @@ export default function App () {
             onKidsSettings={() => setPinAsk('setup')}
             onUpload={() => setLibOpen(true)}
             onInstall={installAvailable ? onInstall : null}
+            user={user}
+            onAuth={() => setAuthOpen(true)}
+            onSignOut={onSignOut}
             query={query}
             onQuery={setQuery}
             searchOpen={searchOpen}
@@ -277,7 +355,13 @@ export default function App () {
               onLike: toggleLike,
               liked: (s) => !!likes[s.id]
             }} />
-          ) : tab === 'mylist' ? (
+          ) : tab === 'live' ? (
+          <Channels
+            live={liveHealth}
+            onPlay={(id) => { const s = byId[id]; if (s) play(s) }}
+            onToast={say}
+          />
+        ) : tab === 'mylist' ? (
             <main className="mylist">
               <h1 className="mylist-h">My List</h1>
               {myListItems.length === 0 ? (
@@ -360,6 +444,7 @@ export default function App () {
           onClose={() => setPlayer(null)}
           onToast={say}
           onProgress={saveProgress}
+          onHealth={handleHealth}
         />
       )}
 
@@ -398,6 +483,14 @@ export default function App () {
           onInstall={onInstall}
           onToast={say}
         />
+      )}
+
+      {authOpen && (
+        <AuthModal onClose={() => setAuthOpen(false)} onToast={say} />
+      )}
+
+      {screen !== 'boot' && !consent && (
+        <CookieConsent onDone={(rec) => { setConsent(rec); say(rec.analytics ? 'Preferences saved — thanks!' : 'Essential-only mode — likes stay session-only') }} />
       )}
 
       {toast && <div className="toast" role="status">{toast}</div>}
