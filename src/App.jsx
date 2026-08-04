@@ -60,7 +60,44 @@ const read = (k, fb) => {
 const KEEP_RORDER = ['top10', 'originals', 'continue', 'playnow', 'custom', 'byw']
 
 export default function App () {
+  // Boot must always be the landing screen — even after HMR or fast refresh.
+  // We initialize to 'boot' and enforce it on mount, guaranteeing web page lands on boot animation.
   const [screen, setScreen] = useState('boot') // boot -> profiles -> app
+  const screenRef = useRef('boot')
+
+  // keep ref in sync for safety timeouts
+  useEffect(() => { screenRef.current = screen }, [screen])
+
+  // On first mount, force boot (handles React Fast Refresh preserving old screen)
+  // Allow ?skipBoot=1 to bypass for automated tests if needed
+  useEffect(() => {
+    try {
+      if (new URLSearchParams(window.location.search).get('skipBoot')) return
+    } catch {}
+    // Remove the static boot-static fallback that was shown for first paint
+    // React will replace #root contents, but this ensures no double layer in edge cases
+    try {
+      const el = document.querySelector('.boot-static')
+      // keep it for 50ms so the transition to React's .boot feels seamless, then clean
+      if (el) setTimeout(() => { try { el.remove() } catch {} }, 100)
+    } catch {}
+    // Always land on boot
+    setScreen('boot')
+    screenRef.current = 'boot'
+  }, [])
+
+  // Safety: if boot is still showing after 5.5s (e.g., Boot's timers failed), force advance
+  useEffect(() => {
+    if (screen !== 'boot') return undefined
+    const id = setTimeout(() => {
+      if (screenRef.current === 'boot') {
+        const p = read('sh.profile', null)
+        setScreen(p ? 'app' : 'profiles')
+      }
+    }, 5500)
+    return () => clearTimeout(id)
+  }, [screen])
+
   const [profile, setProfile] = useState(() => read('sh.profile', null))
   const [myList, setMyList] = useState(() => new Set(read('sh.mylist', [])))
   const [reminded, setReminded] = useState(() => new Set(read('sh.remind', [])))
@@ -128,6 +165,16 @@ export default function App () {
     if (profile?.kids && storedPin()) setPinAsk('exit')
     else switchProfile()
   }
+
+  // Boot done handler — reads fresh profile from storage to avoid stale closure
+  const handleBootDone = useCallback(() => {
+    try {
+      const fresh = read('sh.profile', profile)
+      setScreen(fresh ? 'app' : 'profiles')
+    } catch {
+      setScreen(profile ? 'app' : 'profiles')
+    }
+  }, [profile])
 
   // ── my list / remind / likes ──────────────────────────────────────────────
   const hasInList = useCallback((s) => myList.has(typeof s === 'string' ? s : s.id), [myList])
@@ -393,7 +440,7 @@ export default function App () {
 
   return (
     <>
-      {screen === 'boot' && <Boot onDone={() => setScreen(profile ? 'app' : 'profiles')} />}
+      {screen === 'boot' && <Boot onDone={handleBootDone} />}
       {screen === 'profiles' && <Profiles onPick={pickProfile} />}
 
       {screen === 'app' && (
@@ -407,7 +454,13 @@ export default function App () {
             onUpload={() => setLibOpen(true)}
             onInstall={installAvailable ? onInstall : null}
             user={user}
-            onAuth={() => setAuthOpen(true)}
+            onAuth={() => {
+              if (!SUPABASE_READY) {
+                say('Guest mode — add Supabase keys in .env.local to enable sign-in')
+                return
+              }
+              setAuthOpen(true)
+            }}
             onSignOut={onSignOut}
             query={query}
             onQuery={setQuery}
@@ -556,7 +609,7 @@ export default function App () {
         />
       )}
 
-      {authOpen && (
+      {SUPABASE_READY && authOpen && (
         <AuthModal onClose={() => setAuthOpen(false)} onToast={say} />
       )}
 

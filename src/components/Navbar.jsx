@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import Logo from './Logo.jsx'
+import { SUPABASE_READY } from '../utils/supabase.js'
 
 const LINKS = [
   ['home', 'Home'],
@@ -85,7 +86,7 @@ export default function Navbar ({ tab, onTab, profile, onSwitchProfile, onKidsSe
       </div>
 
       <div className="nav-right">
-        {!user && (
+        {SUPABASE_READY && !user && (
           <button className="nav-signin" onClick={() => onAuth?.()}>
             Sign In
           </button>
@@ -182,8 +183,15 @@ export default function Navbar ({ tab, onTab, profile, onSwitchProfile, onKidsSe
                       </div>
                       <button className="acct-item center" onClick={() => { setMenuOpen(false); onSignOut?.() }}>Sign out account</button>
                     </>
-                  ) : (
+                  ) : SUPABASE_READY ? (
                     <button className="acct-item center blue" onClick={() => { setMenuOpen(false); onAuth?.() }}>Sign in with Google / email</button>
+                  ) : (
+                    <div className="acct-user" style={{ opacity: .7 }}>
+                      <span className="acct-user-txt">
+                        <b>Guest mode</b>
+                        <i>Sign-in disabled — add Supabase keys to enable</i>
+                      </span>
+                    </div>
                   )}
                   <button className="acct-item center" onClick={() => { setMenuOpen(false); onSwitchProfile() }}>Switch profile</button>
                 </>
