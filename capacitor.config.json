@@ -1,0 +1,20 @@
+{
+  "appId": "com.serieshub.app",
+  "appName": "Series Hub",
+  "webDir": "dist",
+  "backgroundColor": "#05060a",
+  "android": {
+    "allowMixedContent": false,
+    "webContentsDebuggingEnabled": false
+  },
+  "ios": {
+    "contentInset": "never",
+    "preferredContentMode": "mobile",
+    "limitsNavigationsToAppBoundDomains": true
+  },
+  "plugins": {
+    "CapacitorHttp": {
+      "enabled": false
+    }
+  }
+}

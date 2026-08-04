@@ -1,0 +1,20 @@
+{
+  "name": "Series Hub — Watch Series & Films",
+  "short_name": "Series Hub",
+  "description": "Netflix-style OTT experience in blue, black & red. Boot animation, profiles, live TMDB shelves, real HLS playback.",
+  "id": "./",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "display_override": ["window-controls-overlay", "standalone"],
+  "orientation": "any",
+  "theme_color": "#05060a",
+  "background_color": "#05060a",
+  "categories": ["entertainment", "video"],
+  "icons": [
+    { "src": "./icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "./icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "./icons/maskable-192.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
+    { "src": "./icons/maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
