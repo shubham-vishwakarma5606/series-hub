@@ -98,5 +98,30 @@
       </div>
     </div>
     <script type="module" src="/src/main.jsx"></script>
+    <script>
+      // Boot watchdog — the splash above is static HTML, visible before any JS.
+      // If the app bundle never runs (deployment serving raw source instead of
+      // the built app, blocked script, stale cache, ancient browser without ES
+      // modules), swap the endless splash for a clear error + recovery instead.
+      // main.jsx sets window.__shBooted as soon as React mounts.
+      (function () {
+        function watch () {
+          setTimeout(function () {
+            var el = document.querySelector('.boot-static')
+            if (!el) return // React mounted and cleaned the splash — all good
+            if (window.__shBooted) { try { el.remove() } catch (e) {} return }
+            el.innerHTML =
+              '<div style="max-width:560px;padding:2rem;text-align:center;font-family:Inter,Arial,sans-serif;color:#fff">' +
+                '<div style="font-size:1.35rem;font-weight:800;margin:0 0 .8rem">Series Hub couldn’t finish loading</div>' +
+                '<p style="color:#b3b3b3;font-size:.95rem;margin:0 0 1.4rem">The page loaded, but the app script didn’t. Check your connection and reload. If it continues, clear site data for this origin and try again.</p>' +
+                '<button onclick="location.reload()" style="background:#fff;color:#05060a;border:0;border-radius:6px;padding:.65em 1.6em;font-weight:700;font-size:.95rem;cursor:pointer">Reload</button>' +
+                '<p style="color:#5c6b84;font-size:.75rem;margin:1.6rem 0 0;line-height:1.5">Site owner: if this is the GitHub Pages deployment, the site is publishing <b>raw source</b> instead of the built app — set Settings → Pages → Source to “GitHub Actions” (docs/DEPLOY.md, step 2).</p>' +
+              '</div>'
+          }, 9000)
+        }
+        if (document.readyState === 'complete') watch()
+        else window.addEventListener('load', watch)
+      })()
+    </script>
   </body>
 </html>
