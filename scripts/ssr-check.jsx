@@ -18,6 +18,7 @@ import TmdbModal from '../src/components/TmdbModal.jsx'
 import KidsPin from '../src/components/KidsPin.jsx'
 import LibraryManager from '../src/components/LibraryManager.jsx'
 import MobileNav from '../src/components/MobileNav.jsx'
+import { GetAppModal, AppBanner } from '../src/components/GetApp.jsx'
 import { ROWS, FEATURED, byId } from '../src/data/catalog.js'
 
 const noop = () => {}
@@ -47,11 +48,13 @@ const cases = {
   TmdbModal: <TmdbModal sel={{ type: 'movie', id: 27205, trailer: false }} onClose={noop} onPick={noop} />,
   KidsPin: <KidsPin mode="verify" expected={null} title="Kids profile is locked" onClose={noop} onDone={noop} />,
   LibraryManager: <LibraryManager existingCount={0} onClose={noop} onSaved={noop} onToast={noop} />,
-  MobileNav: <MobileNav tab="home" onTab={noop} searchOpen={false} onSearch={noop} />,
+  MobileNav: <MobileNav tab="home" onTab={noop} searchOpen={false} onSearch={noop} onGetApp={noop} />,
+  GetAppModal: <GetAppModal onClose={noop} installEvt={null} onInstall={noop} onToast={noop} />,
+  AppBannerHidden: <AppBanner onGetApp={noop} />,               // renders '' in SSR (no Android UA)
   SearchPage: <SearchPage query="neon" onQuery={noop} handlers={handlers} />,
   SearchEmpty: <SearchPage query="zzz nothing" onQuery={noop} handlers={handlers} />,
   SearchBlank: <SearchPage query="" onQuery={noop} handlers={handlers} />,
-  Footer: <Footer />
+  Footer: <Footer onGetApp={noop} />
 }
 
 let fail = 0

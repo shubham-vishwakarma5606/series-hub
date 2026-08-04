@@ -15,6 +15,7 @@ import TmdbModal from './components/TmdbModal.jsx'
 import KidsPin from './components/KidsPin.jsx'
 import LibraryManager from './components/LibraryManager.jsx'
 import MobileNav from './components/MobileNav.jsx'
+import { GetAppModal, AppBanner } from './components/GetApp.jsx'
 import { ROWS, FEATURED, SHOWS, byId, moreLikeThis } from './data/catalog.js'
 import { kidsAllowed } from './utils/ratings.js'
 import { hashPin } from './utils/pin.js'
@@ -41,6 +42,7 @@ export default function App () {
   const [pinAsk, setPinAsk] = useState(null) // 'exit' | 'setup'
   const [libOpen, setLibOpen] = useState(false)
   const [installEvt, setInstallEvt] = useState(null)
+  const [getAppOpen, setGetAppOpen] = useState(false)
   const [partyCode] = useState(() => {
     try {
       const c = new URLSearchParams(window.location.search).get('party')
@@ -322,13 +324,15 @@ export default function App () {
             </main>
           )}
 
-          <Footer />
+          <Footer onGetApp={() => setGetAppOpen(true)} />
           <MobileNav
             tab={tab}
             onTab={(k) => { setQuery(''); setSearchOpen(false); setTab(k) }}
             searchOpen={searchOpen}
             onSearch={() => setSearchOpen(true)}
+            onGetApp={() => setGetAppOpen(true)}
           />
+          <AppBanner onGetApp={() => setGetAppOpen(true)} />
         </div>
       )}
 
@@ -383,6 +387,15 @@ export default function App () {
           existingCount={customItems.length}
           onClose={() => setLibOpen(false)}
           onSaved={() => setLibOpen(false)}
+          onToast={say}
+        />
+      )}
+
+      {getAppOpen && (
+        <GetAppModal
+          onClose={() => setGetAppOpen(false)}
+          installEvt={installEvt}
+          onInstall={onInstall}
           onToast={say}
         />
       )}

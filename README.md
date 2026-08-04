@@ -62,14 +62,24 @@ A fully client-side, Netflix-style OTT streaming experience — rebuilt with a *
 - Home gets a **"Top Picks for {name}"** shelf and generic shelves reorder by your taste; Top 10 / Originals rows keep editorial order
 
 ### 📱 Every device, every ratio
-- **Phones** (portrait/landscape): thumb-reachable **bottom app navigation** (Home · New & Hot · Search · My List), compact heroes, swipe-snapping shelves with no hover arrows, wrap-around player chrome
+- **Phones** (portrait/landscape): thumb-reachable **bottom app navigation** (Home · New & Hot · Search · My List · Get App), compact heroes, swipe-snapping shelves with no hover arrows, wrap-around player chrome
 - **Touch gestures**: tap = show controls, **double-tap left/right = ±10s** with seek flash, scroll-snap cards, `touch-action: manipulation` everywhere (no double-tap zoom lag)
 - **Tablets / iPad** (4:3 portrait): resized card grid & hero; **TVs & ultrawide** (≥1900px/≥2500px): wider gutters, larger cards, taller billboard
 - **Safe areas**: notch/rounded-corner/gesture-bar insets (`env(safe-area-inset-*)`) across navbar, player, toasts, modals, skip pills; `100dvh` for mobile URL bars; `viewport-fit=cover`
 - **Fullscreen button** on any device (+ best-effort landscape lock on phones when entering)
 - Installed-app mode (PWA/Capacitor) gets status-bar padding and overscroll containment
 
-### 📦 Mobile app (three ways to install)
+### 📦 Mobile app — download link on the website
+The site ships its own **download hub** for the Android app, in three places:
+- **Footer** — *Get it on Android · APK* and *Instant install · Web App* badges
+- **Mobile nav** — a **Get App** tab (Android robot icon)
+- **Smart banner** — auto-appears on Android phones browsing the web version (dismissible, remembers the choice)
+
+All three open the **Get the App modal**: APK download button (lights up automatically when an APK is published), instant PWA install, a **QR code** to hand off from desktop to phone, package/version/size metadata, and sideloading instructions.
+
+**Publishing the APK** (no code change needed): drop the signed `series-hub.apk` into `public/downloads/` and flip `"available": true` in `public/downloads/android.json` (or point `url` at a GitHub Releases asset). Full walkthrough in `public/downloads/README.txt`.
+
+Three ways to install:
 1. **Android/desktop — one tap**: account menu → *Install Series Hub App* (native `beforeinstallprompt`)
 2. **iPhone/iPad**: automatic guidance (“Share → Add to Home Screen”) — standalone mode with custom theme bar + icons
 3. **Native store builds**: Capacitor is preconfigured (`capacitor.config.json`, hardened webview flags) —
@@ -140,10 +150,16 @@ Defined once in `src/styles/main.css`:
 ## 🗂️ Project structure
 
 ```
-public/backdrops/          AI-generated hero backdrops
+public/
+  backdrops/               AI-generated hero backdrops
+  icons/                   app/PWA icons
+  videos/                  drop-in folder for self-hosted licensed MP4s
+  downloads/               Android APK drop-in — android.json switches the website link on
+  manifest.webmanifest     installable-app metadata
+  sw.js                    offline precache (artwork, fonts)
 src/
-  data/catalog.js          52 fictional titles + row curation + search/more-like-this
-  utils/sound.js           WebAudio "ta-dum" + chime
+  data/catalog.js          55 titles + row curation + search/more-like-this
+  utils/                   sound · tmdb · ratings · pin · party · library · appStore
   components/
     Boot.jsx               power-on splash
     Profiles.jsx           who's watching gate
@@ -151,11 +167,14 @@ src/
     Hero.jsx               rotating billboard
     Row.jsx / Card.jsx     shelves + hover-expansion poster cards
     Modal.jsx              title details (episodes / similar / trailers)
-    Player.jsx             simulated playback
-    SearchPage.jsx        _RESULTS grid + related chips
-    Footer.jsx
+    Player.jsx             real MP4/HLS playback (hls.js) or labelled simulated preview
+    GetApp.jsx             Android download hub: modal (APK + PWA + QR) + smart banner
+    MobileNav.jsx          thumb-reachable bottom app navigation
+    SearchPage.jsx         RESULTS grid + related chips
+    Footer.jsx             badges, links, TMDB attribution
   styles/main.css          full design system
 scripts/                   data + SSR checks
+capacitor.config.json      native shell config (com.serieshub.app)
 ```
 
 ## ➕ Add a title

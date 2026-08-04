@@ -34,5 +34,6 @@ const injectCsp = {
 export default defineConfig({
   plugins: [react(), injectCsp],
   server: { host: true, port: 5173 },
-  preview: { host: true, port: 4173 }
+  // preview runs behind a sandbox/proxy host — accept it (CSP still applies)
+  preview: { host: true, port: 4173, allowedHosts: true }
 })

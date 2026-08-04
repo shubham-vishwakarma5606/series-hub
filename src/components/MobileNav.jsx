@@ -7,7 +7,9 @@ const TABS = [
   { key: 'mylist', label: 'My List', icon: 'M4 5h16v2H4zm0 6h16v2H4zm0 6h10v2H4z' }
 ]
 
-export default function MobileNav ({ tab, onTab, searchOpen, onSearch }) {
+const GETAPP_ICON = 'M17.6 9.48l1.84-3.18a.38.38 0 0 0-.66-.38l-1.86 3.22a11.66 11.66 0 0 0-9.84 0L5.22 5.92a.38.38 0 0 0-.66.38L6.4 9.48A10.78 10.78 0 0 0 1 18h22a10.78 10.78 0 0 0-5.4-8.52zM7 15.25a1 1 0 1 1 1-1 1 1 0 0 1-1 1zm10 0a1 1 0 1 1 1-1 1 1 0 0 1-1 1z'
+
+export default function MobileNav ({ tab, onTab, searchOpen, onSearch, onGetApp }) {
   return (
     <nav className="mnav" aria-label="Mobile navigation">
       {TABS.map(({ key, label, icon }) => {
@@ -24,6 +26,10 @@ export default function MobileNav ({ tab, onTab, searchOpen, onSearch }) {
           </button>
         )
       })}
+      <button onClick={() => onGetApp?.()} aria-label="Get the Series Hub Android app">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d={GETAPP_ICON} /></svg>
+        <span>Get App</span>
+      </button>
     </nav>
   )
 }

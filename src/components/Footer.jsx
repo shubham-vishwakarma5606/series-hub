@@ -1,6 +1,9 @@
 import { TMDB_ENABLED } from '../utils/tmdb.js'
+import { ANDROID_ICON } from './GetApp.jsx'
 
-export default function Footer () {
+const INSTALL_ICON = 'M12 3l4.2 4.2-1.4 1.4-1.8-1.8V14h-2V6.8L9.2 8.6 7.8 7.2zM5 19h14v2H5z'
+
+export default function Footer ({ onGetApp }) {
   const cols = [
     ['FAQ', 'Investor Relations', 'Privacy', 'Speed Test'],
     ['Help Center', 'Jobs', 'Cookie Preferences', 'Legal Notices'],
@@ -22,6 +25,18 @@ export default function Footer () {
         ))}
       </div>
       <p className="ft-line">Audio and Subtitles</p>
+
+      <div className="ft-apps" aria-label="Get the Series Hub app">
+        <button className="ft-badge" onClick={() => onGetApp?.()}>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d={ANDROID_ICON} /></svg>
+          <span className="ft-badge-txt"><i>Get it on</i><b>Android · APK</b></span>
+        </button>
+        <button className="ft-badge" onClick={() => onGetApp?.()}>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d={INSTALL_ICON} /></svg>
+          <span className="ft-badge-txt"><i>Instant install</i><b>Web App · PWA</b></span>
+        </button>
+      </div>
+
       <div className="ft-cols">
         {cols.map((c, i) => (
           <ul key={i}>{c.map((l) => <li key={l}><a href="#" onClick={(e) => e.preventDefault()}>{l}</a></li>)}</ul>
