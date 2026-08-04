@@ -8,20 +8,35 @@ Live URL once enabled: **https://shubham-vishwakarma5606.github.io/series-hub/**
 
 ---
 
-## Step 1 — Add the deploy workflow *(one paste)*
+## Step 1 — Add/refresh the deploy workflow *(one paste)*
 
 The CI workflow lives in [`DEPLOY-PAGES.yml`](./DEPLOY-PAGES.yml). GitHub treats
-workflow files specially, so drop it in via the web UI:
+workflow files specially (they can't be pushed by apps without the `workflows`
+permission), so drop it in via the web UI:
 
 1. Open **github.com/shubham-vishwakarma5606/series-hub** → **Add file → Create new file**
+   *(if `.github/workflows/deploy.yml` already exists, open it → **Edit** instead)*
 2. As the name, type: `.github/workflows/deploy.yml`
 3. Paste the entire contents of `docs/DEPLOY-PAGES.yml` into the editor
 4. **Commit changes** (directly to your branch)
 
-## Step 2 — Turn on Pages
+> The current `DEPLOY-PAGES.yml` includes a post-deploy check that fails the
+> run with exact instructions if Pages is publishing raw source instead of the
+> built app (the "stuck on the boot animation" symptom) — worth keeping in sync.
+
+## Step 2 — Turn on Pages ⚠️ *do not skip*
 
 1. Repo → **Settings → Pages**
 2. **Source: GitHub Actions** *(not "Deploy from branch")*
+
+> **If you skip this:** Pages will publish your **raw repo files** instead of
+> the built app. The raw `index.html` points at `/src/main.jsx`, which the
+> browser can't run — so visitors see the **boot animation forever and the
+> page never loads**. The workflow is green either way because the deployment
+> succeeds; only this setting controls what actually gets published.
+> (The deploy job now verifies the live HTML and fails fast if this is wrong,
+> and `index.html` shows visitors a clear error instead of a frozen splash —
+> but the real fix is this toggle.)
 
 ## Step 3 — Watch it deploy
 

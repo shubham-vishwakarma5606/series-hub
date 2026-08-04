@@ -62,6 +62,10 @@ if (!rootEl) {
       </ErrorBoundary>
     </React.StrictMode>
   )
+  // Signal to the boot watchdog in index.html that the app bundle actually
+  // executed — the splash may now show React's boot, and if the splash were
+  // somehow left behind the watchdog should remove it, not show an error.
+  try { window.__shBooted = true } catch {}
 }
 
 // Global error logging — helps diagnose blank screen in preview/remote contexts
